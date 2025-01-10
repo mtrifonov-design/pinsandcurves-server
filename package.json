@@ -3,13 +3,18 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/mtrifonov-design"
   },
-  "version": "0.0.0",
+  "version": "0.0.2",
   "description": "",
   "exports": {
     ".": {
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js",
       "types": "./dist/types/types.d.ts"
+    },
+    "./defaultExtensionBundle": {
+      "import": "./dist/defaultExtensionBundle/esm/index.js",
+      "require": "./dist/defaultExtensionBundle/cjs/index.js",
+      "types": "./dist/defaultExtensionBundle/types/types.d.ts"
     }
   },
   "scripts": {
@@ -42,6 +47,6 @@
     "jszip": "^3.10.1",
     "p5": "^1.11.2",
     "p5.brush": "^1.1.4",
-    "@mtrifonov-design/pinsandcurves-external": "0.0.216"
+    "@mtrifonov-design/pinsandcurves-external": "0.0.217"
   }
 }

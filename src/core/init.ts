@@ -2,6 +2,9 @@ import PinsAndCurvesHost from "@mtrifonov-design/pinsandcurves-external/PinsAndC
 import { debounce } from "./utils";
 import DocumentManager from "./DocumentManager";
 
+
+const defaultExtensionBundlePath = "../../dist/defaultExtensionBundle/esm/index.js";
+
 function init() {
     let host: PinsAndCurvesHost;
     const persistence = true;
@@ -36,27 +39,19 @@ function init() {
         // Get the root <pins-and-curves> element
         const pinsAndCurvesDoc = xmlDoc.getElementsByTagName("pins-and-curves")[0];
         const extensions = pinsAndCurvesDoc.getElementsByTagName("extension")[0];
-
-
         const defaultExtensions = [];
 
-        const circle = xmlDoc.createElement("extension");
-        circle.setAttribute("src", "./defaultExtensions/circle.js");
-        defaultExtensions.push(circle);
+        const defaultExtensionBundle = xmlDoc.createElement("extension");
+        defaultExtensionBundle.setAttribute("src", defaultExtensionBundlePath);
+        defaultExtensions.push(defaultExtensionBundle);
     
-        const scene = xmlDoc.createElement("extension");
-        scene.setAttribute("src", "./defaultExtensions/scene.js");
-        defaultExtensions.push(scene);
-
         for (let i = 0; i < defaultExtensions.length; i++) {
             extensions.insertBefore(defaultExtensions[i], extensions.firstChild);
         };
     
         // Pass the modified document to your DocumentManager
         const docManager = new DocumentManager(pinsAndCurvesDoc, host);
-
         applyStyles();
-    
     });
     
 

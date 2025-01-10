@@ -1,22 +1,7 @@
 
 import PinsAndCurvesHost from "@mtrifonov-design/pinsandcurves-external/PinsAndCurvesHost"
 import renderAsImageSequence from "./RenderAsImageSequence";
-
-type Builder = (virtualElement: Element, renderedChild: Element) => Element;
-type Updater = (virtualElement: Element) => void;
-type UIBuilder = () => HTMLElement;
-
-
-
-type Builders = {
-    [key: string]: Builder[];
-}
-
-type Updaters = {
-    [key: string]: Updater[];
-}
-
-type UIBuilders = UIBuilder[];
+import { ExtensionScript, Extension, Builder, Updater, UIBuilder, ExtensionInitContext, GlobalContext, Mode, Resolution } from './types';
 
 class DocumentManager {
 
@@ -24,16 +9,30 @@ class DocumentManager {
     renderRoot: SVGSVGElement;
     host: PinsAndCurvesHost;
     extensions: Element[];
-    builders : Builders = {};
-    uiBuilders: UIBuilders = [];
+    builders : {
+        [key: string]: Builder[];
+    } = {};
+    defaultUIBuilders: UIBuilder[] = [];
+    customUIBuilders: UIBuilder[] = [];
 
-    updaters: Updaters = {};
+    updaters:  {
+        [key: string]: Updater[];
+    } = {};
+
+    extensionStores: {
+        [id: string]: any;
+    } = {};
+
+    globalContext : GlobalContext = {
+        mode: "view",
+        resolution: "normal",
+    }
+
     initCompleted = false;
     constructor(doc: Element, host: PinsAndCurvesHost) {
         this.host = host;
         this.virtualRoot = doc.querySelector('scene') as Element;
         this.renderRoot = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    
         this.extensions = Array.from(doc.querySelectorAll('extension'));
         this.initPipeline();
         this.host.onUpdate(() => {
@@ -42,16 +41,12 @@ class DocumentManager {
             }
         });
     }
-
-
     async initPipeline() {
         await this.initExtensions(this.extensions);
         this.build();
         this.buildUi();
         this.applySignals();
-        console.log(this.host)
         this.update();
-
 
         this.renderRoot.id = 'pac-root';
         this.renderRoot.style.height = '100%';
@@ -65,78 +60,115 @@ class DocumentManager {
     async initExtensions(extensions: Element[]) {
         await Promise.all(extensions.map(async (extension) => {
             const src = extension.getAttribute('src');
-            let extensionScript;
+            let extensionScript : ExtensionScript | null = null;
             if (src) {
                 extensionScript = await import(src);
             }
-            const builder = extensionScript ? (extensionScript as any).builder : undefined;
-            const updater = extensionScript ? (extensionScript as any).updater : undefined;
-            const uiBuilder = extensionScript ? (extensionScript as any).uiBuilder : undefined;
-            if (uiBuilder) {
-                this.uiBuilders.push(uiBuilder);
+            if (!extensionScript) {
+                return;
             }
-
-            const tagNames = extensionScript ? (extensionScript as any).tagNames : [];
-
-            tagNames.forEach((tagName : string) => {
-                if (builder) {
-                    if (!this.builders[tagName]) {
-                        this.builders[tagName] = [];
+            let extensions = "extensions" in extensionScript ? extensionScript.extensions : [extensionScript];
+            extensions.forEach((extension : Extension) => {
+                if ("init" in extension && typeof extension.init === "function") {                    
+                    const extensionInitContext : ExtensionInitContext = {
+                        getProject: () => this.host.c.getProject(),
+                        projectTools: this.host.c.projectTools,
+                        attachExtensionStore: (extensionStore) => this.extensionStores[extension.id] = extensionStore,
+                        globalContext: this.globalContext,
+                        rootElement: this.renderRoot,
+                        setFrame: (frame: number, mode?: Mode, resolution?: Resolution) => {
+                            this.globalContext.mode = mode || this.globalContext.mode;
+                            this.globalContext.resolution = resolution || this.globalContext.resolution;
+                            this.update(frame);
+                        }
                     }
-                    this.builders[tagName].push(builder);
+                    extension.init(extensionInitContext);
                 }
-                if (updater) {
-                    if (!this.updaters[tagName]) {
-                        this.updaters[tagName] = [];
-                    }
-                    this.updaters[tagName].push(updater);
+                const builder = extension.builder;
+                const updater = extension.updater;
+                const customUIBuilder = extension.customUIBuilder;
+                const defaultUIBuilder = extension.defaultUIBuilder;
+                if (customUIBuilder) {
+                    this.customUIBuilders.push(customUIBuilder);
+                }
+                if (defaultUIBuilder) {
+                    this.defaultUIBuilders.push(defaultUIBuilder);
+                }
+                const tagNames = extension.tagNames;
+                if (tagNames) {
+                    tagNames.forEach((tagName : string) => {
+                        if (builder) {
+                            if (!this.builders[tagName]) {
+                                this.builders[tagName] = [];
+                            }
+                            this.builders[tagName].push(builder);
+                        }
+                        if (updater) {
+                            if (!this.updaters[tagName]) {
+                                this.updaters[tagName] = [];
+                            }
+                            this.updaters[tagName].push(updater);
+                        }
+                    });
                 }
             });
         }));
     }
 
     buildUi() {
-        const uiLayer = document.createElement('div');
-        uiLayer.style.position = 'absolute';
-        uiLayer.style.zIndex = '100';
-        uiLayer.style.width = '100%';
-        uiLayer.style.height = '100%';
-        uiLayer.style.left = '0';
-        uiLayer.style.top = '0';
-
-
-        this.uiBuilders.forEach((uiBuilder) => {
+        this.customUIBuilders.forEach((uiBuilder) => {
+            const uiLayer = document.createElement('div');
+            uiLayer.style.position = 'absolute';
+            uiLayer.style.zIndex = '100';
+            uiLayer.style.width = '100%';
+            uiLayer.style.height = '100%';
+            uiLayer.style.left = '0';
+            uiLayer.style.top = '0';
             uiLayer.appendChild(uiBuilder());
+            document.body.appendChild(uiLayer);
         });
-        document.body.appendChild(uiLayer);
 
-        const renderButton = document.createElement('button');
-        renderButton.textContent = 'Render';
-        renderButton.style.position = 'absolute';
-        renderButton.style.bottom = '0';
-        renderButton.style.right = '0';
-        renderButton.style.zIndex = '100';
-        renderButton.onclick = () => {
-            this.exportAsFrames();
-        };
-        uiLayer.appendChild(renderButton);
+        const defaultUILayer = document.createElement('div');
+        defaultUILayer.style.position = 'absolute';
+        defaultUILayer.style.zIndex = '100';
+        defaultUILayer.style.width = '100%';
+        defaultUILayer.style.height = '100%';
+        defaultUILayer.style.left = '0';
+        defaultUILayer.style.top = '0';
+        const island = document.createElement('div');
+        this.defaultUIBuilders.forEach((uiBuilder) => {
+            island.appendChild(uiBuilder());
+        });
+        defaultUILayer.appendChild(island);
+        document.body.appendChild(defaultUILayer);
 
-        const saveAsJsonButton = document.createElement('button');
-        saveAsJsonButton.textContent = 'Save as JSON';
-        saveAsJsonButton.style.position = 'absolute';
-        saveAsJsonButton.style.bottom = '0';
-        saveAsJsonButton.style.right = '100px';
-        saveAsJsonButton.style.zIndex = '100';
+        // const renderButton = document.createElement('button');
+        // renderButton.textContent = 'Render';
+        // renderButton.style.position = 'absolute';
+        // renderButton.style.bottom = '0';
+        // renderButton.style.right = '0';
+        // renderButton.style.zIndex = '100';
+        // renderButton.onclick = () => {
+        //     this.exportAsFrames();
+        // };
+        // uiLayer.appendChild(renderButton);
 
-        saveAsJsonButton.onclick = () => {
-            this.saveAsJson();
-        };
+        // const saveAsJsonButton = document.createElement('button');
+        // saveAsJsonButton.textContent = 'Save as JSON';
+        // saveAsJsonButton.style.position = 'absolute';
+        // saveAsJsonButton.style.bottom = '0';
+        // saveAsJsonButton.style.right = '100px';
+        // saveAsJsonButton.style.zIndex = '100';
 
-        uiLayer.appendChild(saveAsJsonButton);
+        // saveAsJsonButton.onclick = () => {
+        //     this.saveAsJson();
+        // };
+
+        // uiLayer.appendChild(saveAsJsonButton);
 
     }
 
-    traverseBuildRecursive(virtualElement: Element) : Element {
+    traverseBuildRecursive(virtualElement: any) : Element {
         const renderedChildren = Array.from(virtualElement.children).map(this.traverseBuildRecursive.bind(this));
         console.log(virtualElement.tagName,this.builders, renderedChildren);
         let builder = this.builders[virtualElement.tagName];
@@ -149,13 +181,14 @@ class DocumentManager {
         });
         const builders = this.builders[virtualElement.tagName];
         if (builders) {
-        return builders.reduce((acc : Element, builder) => {
-            return builder(virtualElement, acc);
+        return builders.reduce((acc : SVGGElement, builder : Builder) => {
+            const rendered = builder(virtualElement, acc);
+            return rendered;
         }, g);
         } else return g;
     }
     build() {
-        this.renderRoot = this.traverseBuildRecursive(this.virtualRoot) as SVGSVGElement;
+        this.renderRoot.appendChild(this.traverseBuildRecursive(this.virtualRoot));
     }
 
 
@@ -178,7 +211,6 @@ class DocumentManager {
         this.traverseUpdateRecursive(this.virtualRoot);
     }
 
-
     mode = "view";
     applySignals(frame? : number) {
         const host = this.host;
@@ -195,7 +227,6 @@ class DocumentManager {
                 continue;
             }
             const type = signalName.startsWith('@') ? 'idSelector' : 'classSelector';
-
             // now, assume the signal is structured as follows @ | #[name].[property]
             // extract the name and property
             const parts = signalName.split('.');
@@ -217,13 +248,6 @@ class DocumentManager {
                 element.setAttribute(property, String(value));
             });
         }
-        // now select all elements and apply teh frame
-        const elements = Array.from(this.virtualRoot.querySelectorAll('*'));
-        elements.forEach((element) => {
-            element.setAttribute('frame', String(frame || currentFrame));
-            element.setAttribute('relative-time', String(relativeTime));
-            element.setAttribute('mode',this.mode);
-        });
     }
 
     exportAsFrames() {

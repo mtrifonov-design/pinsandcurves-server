@@ -44,7 +44,7 @@ export default [
     input: "src/core/index.ts", // Entry point of your library
     output: [
       {
-        file: "dist/PinsAndCurvesHost/PinsAndCurvesServer.umd.js", // The bundled file
+        file: "dist/PinsAndCurvesServer/PinsAndCurvesServer.umd.js", // The bundled file
         format: "umd", // Universal Module Definition (UMD)
         name: "PinsAndCurvesServer", // Name of the global variable in the browser
       },
@@ -56,5 +56,29 @@ export default [
       }),
       typescript({ tsconfig: "./tsconfig.json" }),
       terser()],
+  },
+
+  // DEFAULT EXTENSION BUNDLE
+  {
+    input: "src/defaultExtensions/index.ts",
+    output: [
+      {
+        file: packageJson.exports["./defaultExtensionBundle"].require,
+        format: "cjs",
+        sourcemap: true,
+      },
+      {
+        file: packageJson.exports["./defaultExtensionBundle"].import,
+        format: "esm",
+        sourcemap: true,
+      },
+    ],
+    plugins: [
+      peerDepsExternal(),
+      resolve(),
+      commonjs(),
+      typescript({ tsconfig: "./tsconfig.json" }),
+      terser(),
+    ],
   },
 ];

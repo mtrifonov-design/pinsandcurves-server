@@ -1,6 +1,6 @@
 import * as brush from 'p5.brush'
 import p5 from 'p5'
-import { parseNumberAttribute } from './defaultExtensions/parseDefaultTransform';
+import { parseNumberAttribute } from '../defaultExtensions/parseDefaultTransform';
 
 
 function generateWavePath(freq,phase) {

@@ -1,5 +1,5 @@
 import p5 from 'p5'
-import { parseNumberAttribute } from './defaultExtensions/parseDefaultTransform';
+import { parseNumberAttribute } from '../defaultExtensions/parseDefaultTransform';
 
 let width = 1080;
 let height = 1080;
