@@ -1,4 +1,6 @@
 import { parseDefaultTransform,parseNumberAttribute } from "./parseDefaultTransform";
+
+const id = "circle";
 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 
 function builder(virtualElement, renderedChild) {
@@ -44,5 +46,5 @@ function updater(virtualElement) {
 
 const tagNames = ['circle'];
 
-export { builder, updater, tagNames };
+export { builder, updater, tagNames, id };
 

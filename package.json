@@ -47,6 +47,6 @@
     "jszip": "^3.10.1",
     "p5": "^1.11.2",
     "p5.brush": "^1.1.4",
-    "@mtrifonov-design/pinsandcurves-external": "0.0.217"
+    "@mtrifonov-design/pinsandcurves-external": "0.0.219"
   }
 }

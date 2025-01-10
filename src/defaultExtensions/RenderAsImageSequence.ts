@@ -72,18 +72,6 @@ async function generateImage(frame: number): Promise<HTMLImageElement> {
             img.onerror = () => reject(new Error("Failed to load SVG blob URL"));
             img.src = blobUrl;
 
-            // // Create an HTMLImageElement from the Blob URL
-            // const img = new Image();
-            // img.onload = () => {
-            //     URL.revokeObjectURL(blobUrl); // Clean up the Blob URL
-            //     resolve(img); // Return the loaded image
-            // };
-            // img.onerror = (e : any) => {
-            //     URL.revokeObjectURL(blobUrl); // Clean up the Blob URL
-            //     console.log(e);
-            //     reject(new Error("Failed to load SVG blob URL"));
-            // };
-            // img.src = blobUrl;
         } catch (error) {
             reject(error); // Catch any unexpected errors
         }
@@ -129,22 +117,13 @@ function openImageSequenceInNewTab(imageSequence: any[], fps: number, width: num
     playButton.innerText = 'Play / Pause';
 
 
-    const downloadAsWebmButton = tabDoc.createElement('button');
-    downloadAsWebmButton.id = 'downloadAsWebmButton';
-    downloadAsWebmButton.innerText = 'Export as .webm';
-
-
     const frameCounter = tabDoc.createElement('div');
     frameCounter.innerText = `0 / ${imageSequence.length}`;
 
 
     tools.appendChild(downloadButton);
-    tools.appendChild(downloadAsWebmButton);
     tools.appendChild(playButton);
     tools.appendChild(frameCounter);
-
-
-
     player.appendChild(canvas);
     player.appendChild(tools);
     tabDoc.body.appendChild(player);
@@ -183,14 +162,6 @@ function openImageSequenceInNewTab(imageSequence: any[], fps: number, width: num
             }
         }
 
-        if (mediaRecorder) {
-            if (repeat) {
-                console.log("Recording stopped...");
-                mediaRecorder.stop();
-                repeat = false;
-                playButton.click();
-            }
-        }
     }
 
     let playing = false;
@@ -238,49 +209,6 @@ function openImageSequenceInNewTab(imageSequence: any[], fps: number, width: num
         });
 
     });
-
-    let mediaRecorder : MediaRecorder | null = null;
-    let chunks : any[] = [];
-    downloadAsWebmButton.addEventListener('click', async () => {
-        const canvasStream = canvas.captureStream(fps); // 30 FPS
-
-        // Capture the audio stream
-
-
-        // Combine the canvas and audio streams
-        const combinedStream = new MediaStream([
-            ...canvasStream.getVideoTracks(),
-        ]);
-
-
-        // Set up the MediaRecorder
-        mediaRecorder = new MediaRecorder(combinedStream);
-        mediaRecorder.ondataavailable = event => chunks.push(event.data);
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            // Create a download link
-            const a = tabDoc.createElement('a');
-            a.href = url;
-            a.download = 'canvas-audio.webm';
-            tabDoc.body.appendChild(a);
-            a.click();
-            tabDoc.body.removeChild(a);
-            mediaRecorder = null;
-        };
-
-
-        if (playing) playButton.click();
-        frame = 0;
-
-        setTimeout(() => {
-            playButton.click();
-            (mediaRecorder as MediaRecorder).start();
-            console.log('Recording started...');
-        }, 50);
-    })
-
-
     w.document.close();
 }
 
@@ -311,13 +239,13 @@ async function renderAsImageSequence({ applySignals, startFrame, endFrame, frame
         imageSequence.push(generateImage(i));
     }
     imageSequence = await Promise.all(imageSequence);
-    
 
     console.log('image sequence', imageSequence);
     const svgcanvas = document.getElementById('pac-root') as HTMLCanvasElement;
     const viewBox = svgcanvas.getAttribute('viewBox')?.split(' ').map(v => parseFloat(v)) || [0, 0, 0, 0];
     const width = viewBox[2];
     const height = viewBox[3];
+    
     openImageSequenceInNewTab(imageSequence, framesPerSecond, width, height, startFrame, endFrame);
 }
 

@@ -5,37 +5,23 @@ import DocumentManager from "./DocumentManager";
 
 const defaultExtensionBundlePath = "../../dist/defaultExtensionBundle/esm/index.js";
 
+function saveProject(host: PinsAndCurvesHost) {
+    const project = host.serialize();
+    const name = host.c.getProject().metaData.name;
+    localStorage.setItem(`pac-project-${name}`, JSON.stringify({ project }));
+}
+
+
 function init() {
-    let host: PinsAndCurvesHost;
-    const persistence = true;
-    const config = {
-        framesPerSecond: 30,
-        numberOfFrames: 500,    
-    }
-    if (persistence) {
-        const json = localStorage.getItem('pac');
-        if (json) {
-            const serialized = JSON.parse(json).project;
-            host = PinsAndCurvesHost.FromSerialized(serialized, config) as PinsAndCurvesHost;
-            host.onUpdate(debounce(() => {
-                localStorage.setItem('pac', JSON.stringify({project:host.serialize()}));
-            }, 1000));
-        } else {
-            host = PinsAndCurvesHost.NewProject(config) as PinsAndCurvesHost;
-            host.onUpdate(debounce(() => {
-                localStorage.setItem('pac', JSON.stringify({project:host.serialize()}));
-            }, 1000));
-        }
-    } else {
-        host = PinsAndCurvesHost.NewProject(config) as PinsAndCurvesHost;
-    }
+    let host = PinsAndCurvesHost.NewProject({}) as PinsAndCurvesHost;
+
 
     fetch("scene.pinsandcurves.xml").then(response => {
         return response.text();
     }).then(xml => {
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xml, "text/xml");
-        
+
         // Get the root <pins-and-curves> element
         const pinsAndCurvesDoc = xmlDoc.getElementsByTagName("pins-and-curves")[0];
         const extensions = pinsAndCurvesDoc.getElementsByTagName("extension")[0];
@@ -44,18 +30,15 @@ function init() {
         const defaultExtensionBundle = xmlDoc.createElement("extension");
         defaultExtensionBundle.setAttribute("src", defaultExtensionBundlePath);
         defaultExtensions.push(defaultExtensionBundle);
-    
+
         for (let i = 0; i < defaultExtensions.length; i++) {
             extensions.insertBefore(defaultExtensions[i], extensions.firstChild);
         };
-    
+
         // Pass the modified document to your DocumentManager
         const docManager = new DocumentManager(pinsAndCurvesDoc, host);
         applyStyles();
     });
-    
-
-
 }
 
 function applyStyles() {

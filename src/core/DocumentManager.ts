@@ -1,7 +1,7 @@
 
 import PinsAndCurvesHost from "@mtrifonov-design/pinsandcurves-external/PinsAndCurvesHost"
-import renderAsImageSequence from "./RenderAsImageSequence";
-import { ExtensionScript, Extension, Builder, Updater, UIBuilder, ExtensionInitContext, GlobalContext, Mode, Resolution } from './types';
+import { debounce } from "./utils";
+import { ExtensionScript, GlobalConstants, Extension, Builder, Updater, UIBuilder, ExtensionInitContext, GlobalState, Mode, Resolution } from '../types';
 
 class DocumentManager {
 
@@ -12,7 +12,7 @@ class DocumentManager {
     builders : {
         [key: string]: Builder[];
     } = {};
-    defaultUIBuilders: UIBuilder[] = [];
+    commonUIBuilders: UIBuilder[] = [];
     customUIBuilders: UIBuilder[] = [];
 
     updaters:  {
@@ -23,29 +23,73 @@ class DocumentManager {
         [id: string]: any;
     } = {};
 
-    globalContext : GlobalContext = {
+    globalState : GlobalState = {
         mode: "view",
         resolution: "normal",
+        frame: 0,
+    }
+
+    globalConstants : GlobalConstants = {
+        
     }
 
     initCompleted = false;
     constructor(doc: Element, host: PinsAndCurvesHost) {
-        this.host = host;
+        
         this.virtualRoot = doc.querySelector('scene') as Element;
         this.renderRoot = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         this.extensions = Array.from(doc.querySelectorAll('extension'));
+        this.parseGlobalConstants(doc);
+        this.host = host; 
+        this.reInitHost();
+        this.initExtensionStores();
+        this.initAutoSave();
         this.initPipeline();
         this.host.onUpdate(() => {
             if (this.initCompleted) {
                 this.update();
             }
         });
+    };
+
+    reInitHost() {
+        console.log(this.globalConstants);
+        const projectName = this.globalConstants['projectName'] || 'Untitled';
+        const json = localStorage.getItem(`pac-project-${projectName}`);
+        if (json) {
+            const project = JSON.parse(json).project;
+            this.host = PinsAndCurvesHost.FromSerialized(project);
+        } else {
+            this.host.c.projectTools.updateProjectName(projectName);
+        }
     }
+
+    initExtensionStores() {
+        const projectName = this.host.c.getProject().metaData.name;
+        const json = localStorage.getItem(`pac-extension-stores-${projectName}`);
+        if (json) {
+            const extensionStores = JSON.parse(json);
+            Object.keys(extensionStores).forEach((id) => {
+                this.extensionStores[id] = extensionStores[id];
+            });
+        }
+    }
+
+    initAutoSave() {
+        const projectName = this.host.c.getProject().metaData.name;
+        this.host.onUpdate(debounce(() => {
+            const extensionStores = JSON.stringify(this.extensionStores);
+            localStorage.setItem(`pac-project-${projectName}`,JSON.stringify({project:this.host.serialize()}));
+            localStorage.setItem(`pac-extension-stores-${projectName}`, extensionStores);
+        }, 1000));
+    }
+
+
     async initPipeline() {
+        
         await this.initExtensions(this.extensions);
         this.build();
         this.buildUi();
-        this.applySignals();
         this.update();
 
         this.renderRoot.id = 'pac-root';
@@ -56,6 +100,19 @@ class DocumentManager {
         document.body.appendChild(this.renderRoot);
         this.initCompleted = true;
     };
+
+    parseGlobalConstants(doc: Element) {
+        
+        const constants = Array.from(doc.getElementsByTagName('constant'));
+        constants.forEach((constant) => {
+            const key = constant.getAttribute('key');
+            const value = constant.getAttribute('value');
+            if (key && value) {
+                this.globalConstants[key] = value;
+            }
+        });
+
+    }
 
     async initExtensions(extensions: Element[]) {
         await Promise.all(extensions.map(async (extension) => {
@@ -68,31 +125,42 @@ class DocumentManager {
                 return;
             }
             let extensions = "extensions" in extensionScript ? extensionScript.extensions : [extensionScript];
+            // console.log(extensions);
             extensions.forEach((extension : Extension) => {
-                if ("init" in extension && typeof extension.init === "function") {                    
+                if ("init" in extension && typeof extension.init === "function") {     
+                    
+                    const getProject = () => this.host.c.getProject();
+                    const getProjectTools = () => this.host.c.projectTools;
+
                     const extensionInitContext : ExtensionInitContext = {
-                        getProject: () => this.host.c.getProject(),
-                        projectTools: this.host.c.projectTools,
+                        getProject,
+                        get projectTools() {
+                            return getProjectTools();
+                        },
                         attachExtensionStore: (extensionStore) => this.extensionStores[extension.id] = extensionStore,
-                        globalContext: this.globalContext,
+                        globalConstants: this.globalConstants,
                         rootElement: this.renderRoot,
                         setFrame: (frame: number, mode?: Mode, resolution?: Resolution) => {
-                            this.globalContext.mode = mode || this.globalContext.mode;
-                            this.globalContext.resolution = resolution || this.globalContext.resolution;
+                            this.globalState.mode = mode || this.globalState.mode;
+                            this.globalState.resolution = resolution || this.globalState.resolution;
                             this.update(frame);
-                        }
+                        },
+                        globalState: this.globalState,
+                        getSignalValue: (signalName: string, frame?: number) => {
+                            return this.host.signal(signalName, frame);
+                        },
                     }
                     extension.init(extensionInitContext);
                 }
                 const builder = extension.builder;
                 const updater = extension.updater;
                 const customUIBuilder = extension.customUIBuilder;
-                const defaultUIBuilder = extension.defaultUIBuilder;
+                const commonUIBuilder = extension.commonUIBuilder;
                 if (customUIBuilder) {
                     this.customUIBuilders.push(customUIBuilder);
                 }
-                if (defaultUIBuilder) {
-                    this.defaultUIBuilders.push(defaultUIBuilder);
+                if (commonUIBuilder) {
+                    this.commonUIBuilders.push(commonUIBuilder);
                 }
                 const tagNames = extension.tagNames;
                 if (tagNames) {
@@ -128,19 +196,21 @@ class DocumentManager {
             document.body.appendChild(uiLayer);
         });
 
-        const defaultUILayer = document.createElement('div');
-        defaultUILayer.style.position = 'absolute';
-        defaultUILayer.style.zIndex = '100';
-        defaultUILayer.style.width = '100%';
-        defaultUILayer.style.height = '100%';
-        defaultUILayer.style.left = '0';
-        defaultUILayer.style.top = '0';
+        const commonUILayer = document.createElement('div');
+        commonUILayer.style.position = 'absolute';
+        commonUILayer.style.zIndex = '100';
+        commonUILayer.style.width = '100%';
+        commonUILayer.style.height = '100%';
+        commonUILayer.style.left = '0';
+        commonUILayer.style.top = '0';
         const island = document.createElement('div');
-        this.defaultUIBuilders.forEach((uiBuilder) => {
-            island.appendChild(uiBuilder());
+        this.commonUIBuilders.forEach((uiBuilder) => {
+            const el = uiBuilder();
+            console.log(el);
+            island.appendChild(el);
         });
-        defaultUILayer.appendChild(island);
-        document.body.appendChild(defaultUILayer);
+        commonUILayer.appendChild(island);
+        document.body.appendChild(commonUILayer);
 
         // const renderButton = document.createElement('button');
         // renderButton.textContent = 'Render';
@@ -170,7 +240,7 @@ class DocumentManager {
 
     traverseBuildRecursive(virtualElement: any) : Element {
         const renderedChildren = Array.from(virtualElement.children).map(this.traverseBuildRecursive.bind(this));
-        console.log(virtualElement.tagName,this.builders, renderedChildren);
+        // console.log(virtualElement.tagName,this.builders, renderedChildren);
         let builder = this.builders[virtualElement.tagName];
         if (!builder) {
             throw new Error(`No builder found for tag ${virtualElement.tagName}`);
@@ -192,7 +262,7 @@ class DocumentManager {
     }
 
 
-    traverseUpdateRecursive(virtualElement: Element) {
+    traverseUpdateRecursive(virtualElement: Element, frame? : number) {
         const updaters = this.updaters[virtualElement.tagName];
         if (updaters) {
             updaters.forEach(updater =>
@@ -207,60 +277,16 @@ class DocumentManager {
     }
 
     update(frame ?: number) {
-        this.applySignals(frame);
+        if (frame === undefined) {
+            frame = this.host.c.getProject().timelineData.playheadPosition
+        }
+        this.globalState.frame = frame;
         this.traverseUpdateRecursive(this.virtualRoot);
     }
 
-    mode = "view";
-    applySignals(frame? : number) {
-        const host = this.host;
-        const controller = host.c;
-        const project = controller.getProject();
-        const signalIds = project.orgData.signalIds;
-        const currentFrame = project.timelineData.playheadPosition;
-        const relativeTime = (frame || currentFrame) / project.timelineData.numberOfFrames;
     
-        for (const signalId of signalIds) {
-            const signalName = project.orgData.signalNames[signalId];
-            const isExportSignal = signalName.startsWith('@') || signalName.startsWith('#');
-            if (!isExportSignal) {
-                continue;
-            }
-            const type = signalName.startsWith('@') ? 'idSelector' : 'classSelector';
-            // now, assume the signal is structured as follows @ | #[name].[property]
-            // extract the name and property
-            const parts = signalName.split('.');
-            if (parts.length < 2) {
-                continue;
-            };
-            const name = parts[0].slice(1, parts[0].length);
-            const property = parts.slice(1).join('.');
-            
-            const value = host.signal(signalName, frame || currentFrame);
-            let elements = [];
-            if (type === 'idSelector') {
-                const element = this.virtualRoot.querySelector(`#${name}`);
-                if (element) elements.push(element);
-            } else {
-                elements = Array.from(this.virtualRoot.querySelectorAll(`.${name}`));
-            }
-            elements.forEach((element) => {
-                element.setAttribute(property, String(value));
-            });
-        }
-    }
 
-    exportAsFrames() {
-        const focusRange = this.host.c.getProject().timelineData.focusRange;
-        const [startFrame, endFrame] = focusRange;
-        const fps = this.host.c.getProject().timelineData.framesPerSecond;
-        renderAsImageSequence({
-            applySignals: this.update.bind(this),
-            startFrame,
-            endFrame,
-            framesPerSecond: fps,
-        })
-    }
+
 
     saveAsJson() {
         const json = JSON.stringify(this.host.serialize());
