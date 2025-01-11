@@ -7,11 +7,24 @@ function builder(virtualElement, renderedChild) {
     return svg;
 }
 
+
 function updater(virtualElement) {
     const width = parseNumberAttribute(virtualElement, "width") || 800;
     const height = parseNumberAttribute(virtualElement, "height") || 600;
-    const viewBox = `0 0 ${width} ${height}`;
+
+    const viewBox = `${-width / 2} ${-height / 2} ${width} ${height}`;
     svg.setAttribute('viewBox', viewBox);   
+    svg.setAttribute('preserveAspectRatio', "xMidYMid meet");
+
+    const previewRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    previewRect.setAttribute('width', width);
+    previewRect.setAttribute('height', height);
+    previewRect.setAttribute('stroke', '#59646E');
+    previewRect.setAttribute('stroke-width', 1);
+    previewRect.setAttribute('fill', 'none');
+    previewRect.setAttribute('x', -width / 2);
+    previewRect.setAttribute('y', -height / 2);
+    svg.appendChild(previewRect);
 }
 
 // function uiBuilder() {

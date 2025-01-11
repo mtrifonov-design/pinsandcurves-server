@@ -3,12 +3,19 @@ import { debounce } from "./utils";
 import DocumentManager from "./DocumentManager";
 
 
+const stylesheetURL = "https://storage.googleapis.com/pinsandcurvesfontservice/PinsAndCurvesStylesheet.css";
+
 //const defaultExtensionBundlePath = "../../dist/defaultExtensionBundle/esm/index.js";
 const defaultExtensionBundlePath = "https://storage.googleapis.com/pinsandcurvesservice/defaultExtensions/index.js"
 
 function init() {
     let host = PinsAndCurvesHost.NewProject({}) as PinsAndCurvesHost;
 
+    // Add the stylesheet to the document
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = stylesheetURL;
+    document.head.appendChild(link);
 
     fetch("scene.pinsandcurves.xml").then(response => {
         return response.text();

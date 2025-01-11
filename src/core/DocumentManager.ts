@@ -40,6 +40,7 @@ class DocumentManager {
         
         this.virtualRoot = doc.querySelector('scene') as Element;
         this.renderRoot = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        document.body.appendChild(this.renderRoot);
         this.extensions = Array.from(doc.querySelectorAll('extension'));
         this.parseGlobalConstants(doc);
         this.host = host; 
@@ -112,11 +113,10 @@ class DocumentManager {
         this.update();
 
         this.renderRoot.id = 'pac-root';
-        this.renderRoot.style.height = '100%';
+        this.renderRoot.style.height = '100vh';
+        this.renderRoot.style.width = '100vw';
         this.renderRoot.style.overflow = 'hidden';
-        this.renderRoot.style.background = 'gray';
-        this.renderRoot.style.zIndex = '-1';
-        document.body.appendChild(this.renderRoot);
+        this.renderRoot.style.background = '#1D2126';
         this.initCompleted = true;
     };
 
@@ -158,12 +158,17 @@ class DocumentManager {
                     const getProject = () => this.host.c.getProject();
                     const getProjectTools = () => this.host.c.projectTools;
 
+                    const extensionStoreExists = this.extensionStores[extension.id] !== undefined;
+                    if (!extensionStoreExists) {
+                        this.extensionStores[extension.id] = {};
+                    }
+
                     const extensionInitContext : ExtensionInitContext = {
                         getProject,
                         get projectTools() {
                             return getProjectTools();
                         },
-                        attachExtensionStore: (extensionStore) => this.extensionStores[extension.id] = extensionStore,
+                        extensionStore: this.extensionStores[extension.id],
                         globalConstants: this.globalConstants,
                         rootElement: this.renderRoot,
                         setFrame: (frame: number, mode?: Mode, resolution?: Resolution) => {
@@ -175,6 +180,7 @@ class DocumentManager {
                         getSignalValue: (signalName: string, frame?: number) => {
                             return this.host.signal(signalName, frame);
                         },
+                        onUpdate: this.host.onUpdate.bind(this.host) as any,
                     }
                     extension.init(extensionInitContext);
                 }
@@ -210,13 +216,15 @@ class DocumentManager {
     }
 
     buildUi() {
+        const commonUIWidth = 300;
+
         this.customUIBuilders.forEach((uiBuilder) => {
             const uiLayer = document.createElement('div');
             uiLayer.style.position = 'absolute';
-            uiLayer.style.zIndex = '100';
-            uiLayer.style.width = '100%';
+            uiLayer.style.width = `calc(100% - ${commonUIWidth}px)`;
+            
             uiLayer.style.height = '100%';
-            uiLayer.style.left = '0';
+            uiLayer.style.left = `${commonUIWidth}px`;
             uiLayer.style.top = '0';
             uiLayer.appendChild(uiBuilder());
             document.body.appendChild(uiLayer);
@@ -225,8 +233,10 @@ class DocumentManager {
         const commonUILayer = document.createElement('div');
         commonUILayer.style.position = 'absolute';
         commonUILayer.style.zIndex = '100';
-        commonUILayer.style.width = '100%';
+        commonUILayer.style.width = `${commonUIWidth}px`;
+        commonUILayer.style.zIndex = '100';
         commonUILayer.style.height = '100%';
+        commonUILayer.style.padding = '10px';
         commonUILayer.style.left = '0';
         commonUILayer.style.top = '0';
         const island = document.createElement('div');

@@ -74,7 +74,11 @@ export default [
       },
     ],
     plugins: [
-      peerDepsExternal(),
+      // peerDepsExternal(),
+      replace({
+        "process.env.NODE_ENV": JSON.stringify("production"), // Replace with "production" or "development"
+        preventAssignment: true, // Required to suppress warnings
+      }),
       resolve({
         browser: true, // Resolves browser-compatible modules
         preferBuiltins: false, // Ensures Rollup does not use Node.js built-ins

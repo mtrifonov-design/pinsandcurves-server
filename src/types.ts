@@ -30,11 +30,12 @@ type ExtensionInitContext = {
     getProject: () => PinsAndCurvesProject;
     getSignalValue: (signalName: string, frame?: number) => number | string | undefined;
     projectTools: PinsAndCurvesProjectTools;
-    attachExtensionStore: (extensionStore: any) => void;
+    extensionStore: any;
     globalConstants: GlobalConstants;
     rootElement: SVGSVGElement;
     setFrame: SetFrame;
     globalState: GlobalState;
+    onUpdate: (callback: Function) => Function;
 }
 
 type Builder = (virtualElement: VirtualElement, renderedChild: SVGGElement) => SVGGElement;
