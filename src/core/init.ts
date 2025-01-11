@@ -3,14 +3,8 @@ import { debounce } from "./utils";
 import DocumentManager from "./DocumentManager";
 
 
-const defaultExtensionBundlePath = "../../dist/defaultExtensionBundle/esm/index.js";
-
-function saveProject(host: PinsAndCurvesHost) {
-    const project = host.serialize();
-    const name = host.c.getProject().metaData.name;
-    localStorage.setItem(`pac-project-${name}`, JSON.stringify({ project }));
-}
-
+//const defaultExtensionBundlePath = "../../dist/defaultExtensionBundle/esm/index.js";
+const defaultExtensionBundlePath = "https://storage.googleapis.com/pinsandcurvesservice/defaultExtensions/index.js"
 
 function init() {
     let host = PinsAndCurvesHost.NewProject({}) as PinsAndCurvesHost;
@@ -24,7 +18,14 @@ function init() {
 
         // Get the root <pins-and-curves> element
         const pinsAndCurvesDoc = xmlDoc.getElementsByTagName("pins-and-curves")[0];
-        const extensions = pinsAndCurvesDoc.getElementsByTagName("extension")[0];
+        const extensionsTags = pinsAndCurvesDoc.getElementsByTagName("extensions");
+        let extensions;
+        if (extensionsTags.length === 0) {
+            extensions = xmlDoc.createElement("extensions");
+            pinsAndCurvesDoc.appendChild(extensions);
+        } else {
+            extensions = extensionsTags[0];
+        }
         const defaultExtensions = [];
 
         const defaultExtensionBundle = xmlDoc.createElement("extension");
@@ -32,7 +33,11 @@ function init() {
         defaultExtensions.push(defaultExtensionBundle);
 
         for (let i = 0; i < defaultExtensions.length; i++) {
-            extensions.insertBefore(defaultExtensions[i], extensions.firstChild);
+            if (extensions.firstChild)
+                extensions.insertBefore(defaultExtensions[i], extensions.firstChild);
+            else {
+                extensions.appendChild(defaultExtensions[i]);
+            }
         };
 
         // Pass the modified document to your DocumentManager

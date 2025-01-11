@@ -17,6 +17,9 @@
       "types": "./dist/defaultExtensionBundle/types/types.d.ts"
     }
   },
+  "files": [
+    
+  ],
   "scripts": {
     "build": "rollup -c --bundleConfigAsCjs",
     "test": "jest",

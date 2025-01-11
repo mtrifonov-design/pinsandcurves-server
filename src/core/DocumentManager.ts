@@ -2,6 +2,8 @@
 import PinsAndCurvesHost from "@mtrifonov-design/pinsandcurves-external/PinsAndCurvesHost"
 import { debounce } from "./utils";
 import { ExtensionScript, GlobalConstants, Extension, Builder, Updater, UIBuilder, ExtensionInitContext, GlobalState, Mode, Resolution } from '../types';
+import { fetchJson, setJson } from "./interactWithJSONfile";
+
 
 class DocumentManager {
 
@@ -41,9 +43,6 @@ class DocumentManager {
         this.extensions = Array.from(doc.querySelectorAll('extension'));
         this.parseGlobalConstants(doc);
         this.host = host; 
-        this.reInitHost();
-        this.initExtensionStores();
-        this.initAutoSave();
         this.initPipeline();
         this.host.onUpdate(() => {
             if (this.initCompleted) {
@@ -52,10 +51,17 @@ class DocumentManager {
         });
     };
 
-    reInitHost() {
+    async reInitHost() {
         console.log(this.globalConstants);
         const projectName = this.globalConstants['projectName'] || 'Untitled';
-        const json = localStorage.getItem(`pac-project-${projectName}`);
+
+        const request = await fetchJson();
+        let json;
+        if (!request.data) {
+            const string = localStorage.getItem(`pac-project-${projectName}`);
+        } else {
+            json = request.data;
+        }
         if (json) {
             const project = JSON.parse(json).project;
             this.host = PinsAndCurvesHost.FromSerialized(project);
@@ -64,29 +70,42 @@ class DocumentManager {
         }
     }
 
-    initExtensionStores() {
+    async initExtensionStores() {
         const projectName = this.host.c.getProject().metaData.name;
-        const json = localStorage.getItem(`pac-extension-stores-${projectName}`);
+
+        const request = await fetchJson();
+        let json;
+        if (!request.data) {
+            json = localStorage.getItem(`pac-extension-stores-${projectName}`);
+        } else {
+            json = request.data;
+        }
         if (json) {
-            const extensionStores = JSON.parse(json);
+            const extensionStores = JSON.parse(json).extensionStores;
             Object.keys(extensionStores).forEach((id) => {
                 this.extensionStores[id] = extensionStores[id];
             });
         }
     }
 
-    initAutoSave() {
+    async initAutoSave() {
         const projectName = this.host.c.getProject().metaData.name;
         this.host.onUpdate(debounce(() => {
-            const extensionStores = JSON.stringify(this.extensionStores);
-            localStorage.setItem(`pac-project-${projectName}`,JSON.stringify({project:this.host.serialize()}));
+            const extensionStores = JSON.stringify({extensionStores:this.extensionStores});
+            const projectData = JSON.stringify({project:this.host.serialize()});
+            const combined = JSON.stringify({project:this.host.serialize(), extensionStores});
+            setJson(combined);
+
+            localStorage.setItem(`pac-project-${projectName}`, projectData);
             localStorage.setItem(`pac-extension-stores-${projectName}`, extensionStores);
         }, 1000));
     }
 
 
     async initPipeline() {
-        
+        await this.reInitHost();
+        await this.initExtensionStores();
+        await this.initAutoSave();
         await this.initExtensions(this.extensions);
         this.build();
         this.buildUi();
@@ -116,7 +135,14 @@ class DocumentManager {
 
     async initExtensions(extensions: Element[]) {
         await Promise.all(extensions.map(async (extension) => {
-            const src = extension.getAttribute('src');
+            let src = extension.getAttribute('src');
+            // if src is a relative path, resolve it
+            if (src && src.startsWith('.')) {
+                src = `${window.location.origin}${window.location.pathname}${src}`;
+                console.log(src);
+            }
+
+
             let extensionScript : ExtensionScript | null = null;
             if (src) {
                 extensionScript = await import(src);

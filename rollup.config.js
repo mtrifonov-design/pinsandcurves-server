@@ -75,10 +75,14 @@ export default [
     ],
     plugins: [
       peerDepsExternal(),
-      resolve(),
+      resolve({
+        browser: true, // Resolves browser-compatible modules
+        preferBuiltins: false, // Ensures Rollup does not use Node.js built-ins
+      }),
       commonjs(),
       typescript({ tsconfig: "./tsconfig.json" }),
       terser(),
     ],
   },
+ 
 ];
