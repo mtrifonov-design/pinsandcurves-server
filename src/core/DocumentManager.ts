@@ -35,7 +35,6 @@ class DocumentManager {
         
     }
 
-    initCompleted = false;
     constructor(doc: Element, host: PinsAndCurvesHost) {
         
         this.virtualRoot = doc.querySelector('scene') as Element;
@@ -45,21 +44,17 @@ class DocumentManager {
         this.parseGlobalConstants(doc);
         this.host = host; 
         this.initPipeline();
-        this.host.onUpdate(() => {
-            if (this.initCompleted) {
-                this.update();
-            }
-        });
+
     };
 
     async reInitHost() {
-        console.log(this.globalConstants);
+        // console.log(this.globalConstants);
         const projectName = this.globalConstants['projectName'] || 'Untitled';
 
         const request = await fetchJson();
         let json;
         if (!request.data) {
-            const string = localStorage.getItem(`pac-project-${projectName}`);
+           // json = localStorage.getItem(`pac-project-${projectName}`);
         } else {
             json = request.data;
         }
@@ -77,7 +72,7 @@ class DocumentManager {
         const request = await fetchJson();
         let json;
         if (!request.data) {
-            json = localStorage.getItem(`pac-extension-stores-${projectName}`);
+            //json = localStorage.getItem(`pac-extension-stores-${projectName}`);
         } else {
             json = request.data;
         }
@@ -94,11 +89,12 @@ class DocumentManager {
         this.host.onUpdate(debounce(() => {
             const extensionStores = JSON.stringify({extensionStores:this.extensionStores});
             const projectData = JSON.stringify({project:this.host.serialize()});
-            const combined = JSON.stringify({project:this.host.serialize(), extensionStores});
+            const combined = JSON.stringify({project:this.host.serialize(), 
+                extensionStores: this.extensionStores});
             setJson(combined);
 
-            localStorage.setItem(`pac-project-${projectName}`, projectData);
-            localStorage.setItem(`pac-extension-stores-${projectName}`, extensionStores);
+            // localStorage.setItem(`pac-project-${projectName}`, projectData);
+            // localStorage.setItem(`pac-extension-stores-${projectName}`, extensionStores);
         }, 1000));
     }
 
@@ -108,6 +104,9 @@ class DocumentManager {
         await this.initExtensionStores();
         await this.initAutoSave();
         await this.initExtensions(this.extensions);
+
+
+
         this.build();
         this.buildUi();
         this.update();
@@ -117,7 +116,10 @@ class DocumentManager {
         this.renderRoot.style.width = '100vw';
         this.renderRoot.style.overflow = 'hidden';
         this.renderRoot.style.background = '#1D2126';
-        this.initCompleted = true;
+        this.host.onUpdate(() => {
+            // console.log("Update");
+            this.update();
+        });
     };
 
     parseGlobalConstants(doc: Element) {
@@ -139,7 +141,7 @@ class DocumentManager {
             // if src is a relative path, resolve it
             if (src && src.startsWith('.')) {
                 src = `${window.location.origin}${window.location.pathname}${src}`;
-                console.log(src);
+                // console.log(src);
             }
 
 
@@ -151,7 +153,7 @@ class DocumentManager {
                 return;
             }
             let extensions = "extensions" in extensionScript ? extensionScript.extensions : [extensionScript];
-            // console.log(extensions);
+            // // console.log(extensions);
             extensions.forEach((extension : Extension) => {
                 if ("init" in extension && typeof extension.init === "function") {     
                     
@@ -239,13 +241,20 @@ class DocumentManager {
         commonUILayer.style.padding = '10px';
         commonUILayer.style.left = '0';
         commonUILayer.style.top = '0';
-        const island = document.createElement('div');
+        commonUILayer.style.display = 'flex';
+        commonUILayer.style.flexDirection = 'column';
+        commonUILayer.style.gap = '10px';
+        commonUILayer.style.overflowY = 'auto';
+        commonUILayer.style.overflowX = 'hidden';
+        // style scrollbar
+        commonUILayer.style.scrollbarWidth = 'thin';
+        commonUILayer.style.scrollbarColor = 'var(--gray3) var(--gray1) ';
+
         this.commonUIBuilders.forEach((uiBuilder) => {
             const el = uiBuilder();
-            console.log(el);
-            island.appendChild(el);
+            // console.log(el);
+            commonUILayer.appendChild(el);
         });
-        commonUILayer.appendChild(island);
         document.body.appendChild(commonUILayer);
 
         // const renderButton = document.createElement('button');
@@ -276,7 +285,7 @@ class DocumentManager {
 
     traverseBuildRecursive(virtualElement: any) : Element {
         const renderedChildren = Array.from(virtualElement.children).map(this.traverseBuildRecursive.bind(this));
-        // console.log(virtualElement.tagName,this.builders, renderedChildren);
+        // // console.log(virtualElement.tagName,this.builders, renderedChildren);
         let builder = this.builders[virtualElement.tagName];
         if (!builder) {
             throw new Error(`No builder found for tag ${virtualElement.tagName}`);
@@ -300,6 +309,7 @@ class DocumentManager {
 
     traverseUpdateRecursive(virtualElement: Element, frame? : number) {
         const updaters = this.updaters[virtualElement.tagName];
+        // console.log(updaters);
         if (updaters) {
             updaters.forEach(updater =>
                 updater(virtualElement)
@@ -319,10 +329,6 @@ class DocumentManager {
         this.globalState.frame = frame;
         this.traverseUpdateRecursive(this.virtualRoot);
     }
-
-    
-
-
 
     saveAsJson() {
         const json = JSON.stringify(this.host.serialize());

@@ -1,72 +1,29 @@
 import { ExtensionInitContext } from "../../types"
 import { PinsAndCurvesProject } from "../../types"
+import { ProjectDataStructure } from "@mtrifonov-design/pinsandcurves-external";
 
-import { ProjectDataStructure } from '@mtrifonov-design/pinsandcurves-external'
-
-
-
-
+type Signal = ProjectDataStructure.Signal;
 type ContinuousSignal = ProjectDataStructure.ContinuousSignal;
 
-type NumericSignalProperty = {
-    propertyName: string,
-    type: 'numeric',
-    signalAssociated: true,
-    signalName: string,
-    range: [number, number],
-    rangeType: 'inherit' | 'remap' | 'remap-flex',
-    staticValue: number,
-    currentValue: number,
-}
-
-type NumericStaticProperty = {
-    propertyName: string,
-    type: 'numeric',
-    signalAssociated: false,
-    staticValue: number,
-    range: [number, number],
-    rangeType: 'inherit' | 'remap' | 'remap-flex',
-    currentValue: number,
+type Property = {
+    type: "numeric" | "string";
+    fallbackValue: number | string;
+    currentValue?: number | string;
+    signalConnected?: boolean;
+    signalName?: string;
+    propertyName?: string;
+    propertyId: string;
 }
 
 
-type NumericProperty =
-    | NumericSignalProperty
-    | NumericStaticProperty
-
-type StringSignalProperty = {
-    propertyName: string,
-    type: 'string',
-    signalAssociated: true,
-    signalName: string,
-    staticValue: string,
-    currentValue: string,
-}
-
-type StringStaticProperty = {
-    propertyName: string,
-    type: 'string',
-    signalAssociated: false,
-    staticValue: string,
-    currentValue: string,
-}
-
-type StringProperty =
-    | StringSignalProperty
-    | StringStaticProperty
-
-type Property =
-    | NumericProperty
-    | StringProperty
 
 class PropertyManager {
-    properties: { [key: string]: Property } = {};
-    subscribers : Function[] = [];
-
     getSignalValue: (signalName: string, frame?: number) => number | string | undefined;
     getProject: () => PinsAndCurvesProject;
-    constructor(initCtx: ExtensionInitContext, extensionStore: any) {
-        this.properties = extensionStore.properties || {};
+    constructor(initCtx: ExtensionInitContext) {
+        const extensionStore = initCtx.extensionStore;
+        // // console.log("Extension store", extensionStore);
+        this.properties = "properties" in extensionStore ? extensionStore.properties : {};
         this.getSignalValue = initCtx.getSignalValue;
         this.getProject = initCtx.getProject;
         initCtx.onUpdate(() => {
@@ -75,177 +32,193 @@ class PropertyManager {
             this.subscribers.forEach(cb => cb());
         });
     };
-
-    subscribe(cb: Function) {
-        this.subscribers.push(cb);
-        return () => {
-            this.subscribers = this.subscribers.filter(sub => sub !== cb);
+    properties: {[key: string]: Property} = {};
+    registerProperty(property: Property, overwrite?: boolean) {
+        const propertyId = property.propertyId;
+        if (this.properties[propertyId] && !overwrite) {
+            return;
         }
-    }
-
-    getSnapshot() {
-        return this.properties;
-    }
-
-    updateProperties() {
-        let newprops : { [key: string]: Property } = {};
-        Object.keys(this.properties).forEach((key) => {
-            const property = this.properties[key];
-            if (property.type === 'numeric') {
-                if (property.signalAssociated) {
-                    if (property.rangeType === 'inherit') {
-                        const project = this.getProject();
-                        const signalId = Object.keys(project.orgData.signalNames).find(key => project.orgData.signalNames[key] === (property as NumericSignalProperty).signalName);
-                        if (!signalId) {
-                            return;
-                        }
-                        const type = project.orgData.signalTypes[signalId];
-                        if (type === 'continuous') {
-                            const signalRange = (project.signalData[signalId] as ContinuousSignal).range;
-                            const cloned = [signalRange[0], signalRange[1]] as [number, number];
-                            newprops = {
-                                ...this.properties,
-                                [key]: {
-                                    ...property,
-                                    range: cloned,
-                                },
-                            };
-                        }
-
-                    }
-
-                }
-            }
-
-            const currentValue = this.getValue(key) as any;
-            newprops = {
-                ...this.properties,
-                [key]: {
-                    ...property,
-                    currentValue,
-                },
-            };
-
-        });
-        this.properties = newprops;
-    }
-
-    registerProperty(propertyId: string, property: Property) {
         this.properties = {
             ...this.properties,
             [propertyId]: property,
-        };
+        }
     };
-
     associateSignal(propertyId: string, signalName: string) {
         const property = this.properties[propertyId];
-        if (property.type === 'numeric') {
-            this.properties = {
-                ...this.properties,
-                [propertyId]: {
-                    ...property,
-                    signalAssociated: true,
-                    signalName,
-                },
-            };
-        }
-    }
-
+        this.properties = {
+            ...this.properties,
+            [propertyId]: {
+                ...property,
+                signalName,
+            },
+        };
+    };
     disassociateSignal(propertyId: string) {
         const property = this.properties[propertyId];
         this.properties = {
             ...this.properties,
             [propertyId]: {
                 ...property,
-                signalAssociated: false,
+                signalName: undefined,
             },
         };
-
     }
 
-    remapRange(propertyId: string, range: [number, number]) {
-        const property = this.properties[propertyId];
-        if (!property) {
-            return;
-        }
-        if (property.type === 'numeric') {
-            const allowed = property.rangeType === 'remap-flex';
-            if (allowed) {
-                this.properties = {
-                    ...this.properties,
-                    [propertyId]: {
-                        ...property,
-                        range,
-                    },
-                };
-            }
-        }
-    }
 
-    setValue(propertyId: string, value: number | string) {
-        const property = this.properties[propertyId];
-        if (property.type === 'numeric') {
-            if (property.signalAssociated) {
-                return;
-            }
+    updateProperties() {
+        Object.keys(this.properties).forEach(propertyId => {
+            let property = this.properties[propertyId];
+            const isConnected = this.computeIsConnected(propertyId);
             this.properties = {
                 ...this.properties,
                 [propertyId]: {
                     ...property,
-                    staticValue: Number(value),
+                    signalConnected: isConnected,
                 },
             };
-        } else {
-            if (property.signalAssociated) {
-                return;
-            }
+            property = this.properties[propertyId];
+            const currentValue = this.computeValue(propertyId);
             this.properties = {
                 ...this.properties,
                 [propertyId]: {
                     ...property,
-                    staticValue: String(value),
+                    currentValue,
                 },
             };
-        }
+        });
+        this.subscribers.forEach(sub => sub());
     }
 
-
-    getValue(propertyId: string, frame?: number) {
+    computeIsConnected(propertyId: string) : boolean {
         const property = this.properties[propertyId];
-        if (property.type === 'numeric') {
-            if (property.signalAssociated) {
-                const computedValue = Number(this.getSignalValue((property as NumericSignalProperty).signalName, frame));
-                if (isNaN(computedValue)) {
-                    return property.staticValue;
-                }
-                const [min, max] = property.range;
-                const project = this.getProject();
-                const signalId = Object.keys(project.orgData.signalNames).find(key => project.orgData.signalNames[key] === (property as NumericSignalProperty).signalName);
-                if (!signalId) {
-                    return property.staticValue;
-                }
-                const type = project.orgData.signalTypes[signalId];
-                if (type !== 'continuous') {
-                    return property.staticValue;
-                }
-                const signalRange = (project.signalData[signalId] as ContinuousSignal).range;
-                const relative = (computedValue - signalRange[0]) / (signalRange[1] - signalRange[0]);
-                return min + relative * (max - min);
-            } else {
-                return property.staticValue;
-            }
+        const signalName = property.signalName;
+        if (!signalName) {
+            return false;
+        } 
+        const project = this.getProject();
+        const signalId = project.orgData.signalIds.find(id => project.orgData.signalNames[id] === signalName);
+        if (signalId) {
+            return true;
+        }
+        return false;
+    };
+
+
+    computeValue(propertyId: string) {
+        const property = this.properties[propertyId];
+        const signalConnected = property.signalConnected;
+        const signalName = property.signalName;
+        if (!signalConnected || !signalName) {
+            return property.fallbackValue;
+        }
+        const signalValue = this.getSignalValue(signalName);
+        const type = property.type;
+        if (type === 'numeric') {
+            return Number(signalValue || property.fallbackValue);
         } else {
-            if (property.signalAssociated) {
-                const computedValue = this.getSignalValue((property as StringSignalProperty).signalName, frame);
-                return String(computedValue);
-            } else {
-                return property.staticValue;
-            }
+            return String(signalValue || property.fallbackValue);
         }
     };
 
 
+    getValue(key: string) {
+        const currentValue = this.properties[key].currentValue;
+        if (!currentValue) {
+            return this.properties[key].fallbackValue;
+        }
+        return currentValue;
+    };
+
+    remapValue(key: string, range: [number, number]) {
+        const property = this.properties[key];
+        const type = property.type;
+        let currentValue = this.getValue(key);
+        if (type !== 'numeric') {
+            return currentValue;
+        }
+        currentValue = currentValue as number; 
+        const signalConnected = property.signalConnected;
+        const signalName = property.signalName;
+        if (!signalConnected || !signalName) {
+            return currentValue;
+        }
+        const [min, max] = range;
+        const project = this.getProject();
+        const signalId = project.orgData.signalIds.find(id => project.orgData.signalNames[id] === signalName);
+        let signal = project.signalData[signalId as string] as Signal;
+        const signalType = signal.type;
+        if (signalType !== 'continuous') {
+            return currentValue;
+        }
+        signal = signal as ContinuousSignal;
+        const [smin,smax] = signal.range;
+        const relative = (currentValue - smin) / (smax - smin);
+        const remapped = min + relative * (max - min);
+        return remapped;
+    }
+
+    remapValueIf01(key: string, range: [number, number]) {
+        const property = this.properties[key];
+        const type = property.type;
+        // console.log(property)
+        let currentValue = this.getValue(key);
+        if (type !== 'numeric') {
+            return currentValue;
+        }
+        currentValue = currentValue as number; 
+        const signalConnected = property.signalConnected;
+        const signalName = property.signalName;
+        if (!signalConnected || !signalName) {
+            return currentValue;
+        }
+        const [min, max] = range;
+        // console.log(min,max)
+        const project = this.getProject();
+        const signalId = project.orgData.signalIds.find(id => project.orgData.signalNames[id] === signalName);
+        let signal = project.signalData[signalId as string] as Signal;
+        const signalType = signal.type;
+        if (signalType !== 'continuous') {
+            return currentValue;
+        }
+        signal = signal as ContinuousSignal;
+        const [smin,smax] = signal.range;
+        if (smin !== 0 || smax !== 1) {
+            return currentValue;
+        }
+
+        // console.log(smin,smax,min,max)
+        const relative = (currentValue - smin) / (smax - smin);
+        const remapped = min + relative * (max - min);
+        return remapped;
+    }
+
+    getSignalConnected(key: string) {
+        return this.properties[key].signalConnected;
+    }
+
+    subscribers: Function[] = [];
+    subscribe(cb: Function) {
+        this.subscribers.push(cb);
+        return () => {
+            this.subscribers = this.subscribers.filter(sub => sub !== cb);
+        }
+    }
+    getSnapshot() {
+        return this.properties;
+    }
 
 }
+
+
+function createProperty(propertyId: string, propertyName: string, type: "numeric" | "string", fallbackValue: number | string) {
+    return {
+        type,
+        fallbackValue,
+        propertyName,
+        propertyId,
+    }
+}
+
+export { createProperty };
 
 export default PropertyManager;

@@ -1,6 +1,10 @@
 import { parseDefaultTransform,parseNumberAttribute } from "./parseDefaultTransform";
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
+let initContext;
+function init(ext) {
+    initContext = ext;
+}
 
 function builder(virtualElement, renderedChild) {
     svg.appendChild(renderedChild);
@@ -9,8 +13,8 @@ function builder(virtualElement, renderedChild) {
 
 
 function updater(virtualElement) {
-    const width = parseNumberAttribute(virtualElement, "width") || 800;
-    const height = parseNumberAttribute(virtualElement, "height") || 600;
+    const width = initContext.globalConstants['sceneWidth'] ? parseInt(initContext.globalConstants['sceneWidth']) : 800;
+    const height = initContext.globalConstants['sceneHeight'] ? parseInt(initContext.globalConstants['sceneHeight']) : 600;
 
     const viewBox = `${-width / 2} ${-height / 2} ${width} ${height}`;
     svg.setAttribute('viewBox', viewBox);   
@@ -35,5 +39,5 @@ function updater(virtualElement) {
 
 const tagNames = ['scene'];
 
-export { builder, updater, tagNames };
+export { builder, updater, tagNames, init };
 

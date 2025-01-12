@@ -1,7 +1,8 @@
 import React, { createContext, useSyncExternalStore } from 'react';
 import ObjectManager from './ObjectManager';
 
-const ObjectManagerContext = createContext<ObjectManager | null>(null);
+const ObjectManagerContext = createContext<any | null>(null);
+
 function ObjectManagerContainer({ objectManager, children }: {
     objectManager: ObjectManager;
     children?: React.ReactNode;
