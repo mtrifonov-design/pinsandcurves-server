@@ -112,6 +112,15 @@ function commonUIBuilder() {
     commonUIBox = initCommonUI();
     return commonUIBox;
 }
+
+let cachedPath;
+
+function getZigzagifyPathNode(node, { phase, frequency, samplePoints, amplitude, rounding }) {
+    cachedPath = zigzagifyPathNode(node, { phase, frequency, samplePoints, amplitude, rounding });
+}
+const debouncedZigZagifyPathNode = debounce(getZigzagifyPathNode, 20);
+
+
 function updaterRaw(virtualElement) {
     if (closestGeometryElement === null) {
         return;
@@ -122,16 +131,22 @@ function updaterRaw(virtualElement) {
     const pm = propertyManagers[uniqueId];
 
     const rounding = pm.remapValue('rounding', [0,1]);
-    const phase = pm.remapValue('phase', [0,1]);
+    const phase = pm.remapValue('phase', [0,2 * Math.PI]);
     const frequency = Math.floor(pm.remapValue('frequency', [1,100]));
     const samplePoints = Math.floor(Math.max(pm.getValue('samplePoints'),0));
     const amplitude = pm.getValue('amplitude');
-    const path = zigzagifyPathNode(closestGeometryElement, { phase, frequency, samplePoints, amplitude, rounding });
+    const path = cachedPath ? cachedPath : closestGeometryElement.getAttribute('d');
+    
+    debouncedZigZagifyPathNode(closestGeometryElement, { phase, frequency, samplePoints, amplitude, rounding });
     objects[uniqueId].setAttribute('d', path);
     objects[uniqueId].setAttribute('fill', "white");
     objects[uniqueId].setAttribute('stroke', "black");
     objects[uniqueId].setAttribute('stroke-width', 1);
 }
+
+
+
+
 const tagNames = ['zigzagify'];
 
 const updater = debounce(updaterRaw, 20);

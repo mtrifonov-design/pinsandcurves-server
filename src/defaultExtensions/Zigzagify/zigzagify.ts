@@ -41,8 +41,7 @@ function zigzagifyPathNode(pathNode: SVGPathElement, params: ZigzagParams): stri
         // Zigzag displacement
         const offset =
             Math.sin((t / totalLength) * frequency * Math.PI * 2 + phase) *
-            amplitude *
-            (1 - rounding + rounding * Math.sin((t / totalLength) * Math.PI));
+            amplitude
 
         const displacedPoint = {
             x: point.x + offset * normal.x,
