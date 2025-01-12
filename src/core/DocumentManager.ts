@@ -308,6 +308,12 @@ class DocumentManager {
 
 
     traverseUpdateRecursive(virtualElement: Element, frame? : number) {
+
+        const virtualChildren = Array.from(virtualElement.children);
+        for (let i = 0; i < virtualChildren.length; i++) {
+            this.traverseUpdateRecursive(virtualChildren[i]);
+        }
+
         const updaters = this.updaters[virtualElement.tagName];
         // console.log(updaters);
         if (updaters) {
@@ -316,10 +322,7 @@ class DocumentManager {
             );
         }
 
-        const virtualChildren = Array.from(virtualElement.children);
-        for (let i = 0; i < virtualChildren.length; i++) {
-            this.traverseUpdateRecursive(virtualChildren[i]);
-        }
+
     }
 
     update(frame ?: number) {

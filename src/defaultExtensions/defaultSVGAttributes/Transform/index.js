@@ -83,11 +83,15 @@ function builder(virtualElement, renderedChild) {
     pm.registerProperty(skewX);
     pm.registerProperty(skewY);
 
+    virtualElement.addEventListener('select', () => {
+        activateObject(uniqueId);
+    })
+    virtualElement.addEventListener('deselect', () => {
+        deactivateObject();
+    })
 
 
-    g.addEventListener('mouseover', () => {onMouseOver(uniqueId)});
-    g.addEventListener('mouseout', () => {onMouseOut(uniqueId)});
-    g.addEventListener('click', () => {activateObject(uniqueId);});
+
     initContext.rootElement.addEventListener('click', () => {deactivateObject()});
     return g;
 }

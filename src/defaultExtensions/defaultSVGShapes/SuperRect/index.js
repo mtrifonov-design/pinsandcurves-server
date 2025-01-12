@@ -56,6 +56,15 @@ function deactivateObject() {
 }
 
 function builder(virtualElement, renderedChild) {
+
+    virtualElement.addEventListener('select', () => {
+        activateObject(uniqueId);
+    })
+    virtualElement.addEventListener('deselect', () => {
+        deactivateObject();
+    })
+
+
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const uniqueId = getUniqueSelectorPath(virtualElement);
     objects[uniqueId] = path;
@@ -65,10 +74,6 @@ function builder(virtualElement, renderedChild) {
     pm.registerProperty(stretch);
     const rounding = createProperty('rounding','rounding', 'numeric', 0);
     pm.registerProperty(rounding);
-    // add a listener for hover events
-    path.addEventListener('mouseover', () => {onMouseOver(uniqueId)});
-    path.addEventListener('mouseout', () => {onMouseOut(uniqueId)});
-    path.addEventListener('click', () => {activateObject(uniqueId);});
     initContext.rootElement.addEventListener('click', () => {deactivateObject()});
     return path;
 }
@@ -91,7 +96,6 @@ function updater(virtualElement) {
     const rounding = pm.remapValue('rounding', [0,1]);
 
     
-    console.log("stretch",stretch,"rounding",rounding);
     const path = generateSuperRectPath({ stretch, rounding });
     objects[uniqueId].setAttribute('d', path);
     objects[uniqueId].setAttribute('fill', "white");

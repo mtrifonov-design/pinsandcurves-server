@@ -33,6 +33,7 @@
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.13",
     "@types/react": "^19.0.4",
+    "@types/react-dom": "^19.0.3",
     "rollup": "^4.24.0",
     "rollup-plugin-dts": "^6.1.1",
     "rollup-plugin-peer-deps-external": "^2.2.4",
@@ -50,7 +51,7 @@
     "jszip": "^3.10.1",
     "p5": "^1.11.2",
     "p5.brush": "^1.1.4",
-    "react": "^18.3.1",
+    "react": "^18.3.2",
     "react-dom": "^18.3.1"
   }
 }

@@ -2,7 +2,6 @@ import PinsAndCurvesHost from "@mtrifonov-design/pinsandcurves-external/PinsAndC
 import { debounce } from "./utils";
 import DocumentManager from "./DocumentManager";
 
-
 const stylesheetURL = "https://storage.googleapis.com/pinsandcurvesfontservice/PinsAndCurvesStylesheet.css";
 
 //const defaultExtensionBundlePath = "../../dist/defaultExtensionBundle/esm/index.js";

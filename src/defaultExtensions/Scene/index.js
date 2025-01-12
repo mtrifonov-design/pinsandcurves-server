@@ -1,6 +1,9 @@
-import { parseDefaultTransform,parseNumberAttribute } from "./parseDefaultTransform";
+import React from 'react'
+import { createRoot } from 'react-dom/client';
+import SceneNavigator from './SceneNavigator';
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-
+const previewRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+let vElement;
 let initContext;
 function init(ext) {
     initContext = ext;
@@ -8,6 +11,8 @@ function init(ext) {
 
 function builder(virtualElement, renderedChild) {
     svg.appendChild(renderedChild);
+    svg.appendChild(previewRect);
+    vElement = virtualElement;
     return svg;
 }
 
@@ -19,8 +24,6 @@ function updater(virtualElement) {
     const viewBox = `${-width / 2} ${-height / 2} ${width} ${height}`;
     svg.setAttribute('viewBox', viewBox);   
     svg.setAttribute('preserveAspectRatio', "xMidYMid meet");
-
-    const previewRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     previewRect.setAttribute('width', width);
     previewRect.setAttribute('height', height);
     previewRect.setAttribute('stroke', '#59646E');
@@ -28,8 +31,14 @@ function updater(virtualElement) {
     previewRect.setAttribute('fill', 'none');
     previewRect.setAttribute('x', -width / 2);
     previewRect.setAttribute('y', -height / 2);
-    svg.appendChild(previewRect);
 }
+
+function customUIBuilder() {
+    const box = document.createElement('div');
+    createRoot(box).render(SceneNavigator({rootElement: vElement}));
+    return box;
+}
+
 
 // function uiBuilder() {
 //     const h1 = document.createElement('h1');
@@ -39,5 +48,5 @@ function updater(virtualElement) {
 
 const tagNames = ['scene'];
 
-export { builder, updater, tagNames, init };
+export { builder, updater, customUIBuilder, tagNames, init };
 
