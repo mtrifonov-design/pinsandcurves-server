@@ -45,7 +45,7 @@ function deactivateObject() {
     activeStore.setActive(false);
 }
 
-function builder(virtualElement, renderedChild) {
+function builder(virtualElement, renderedChildren) {
 
     virtualElement.addEventListener('select', () => {
         activateObject(uniqueId);

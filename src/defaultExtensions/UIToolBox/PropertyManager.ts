@@ -31,7 +31,12 @@ class PropertyManager {
         this.getProject = initCtx.getProject;
         initCtx.onUpdate(() => {
             this.updateProperties();
-            store.properties = this.properties;
+            // if id starts with #, save it to store, otherwise don't
+            if (id[0] === "#") {
+                store.properties = this.properties;
+            }
+
+            // store.properties = this.properties;
             this.subscribers.forEach(cb => cb());
         });
     };
@@ -117,16 +122,16 @@ class PropertyManager {
         const signalValue = this.getSignalValue(signalName);
         const type = property.type;
         if (type === 'numeric') {
-            return Number(signalValue || property.fallbackValue);
+            return Number(signalValue === undefined ? property.fallbackValue : signalValue);
         } else {
-            return String(signalValue || property.fallbackValue);
+            return String(signalValue === undefined ? property.fallbackValue : signalValue);
         }
     };
 
 
     getValue(key: string) {
         const currentValue = this.properties[key].currentValue;
-        if (!currentValue) {
+        if (currentValue === undefined) {
             return this.properties[key].fallbackValue;
         }
         return currentValue;

@@ -15,6 +15,7 @@ function SceneElement({ element, selectedElement, setSelectedElement, root }: {
     const [expanded, setExpanded] = React.useState(true);
     const tagName = element.tagName;
     const children = Array.from(element.children);
+    const elementId = element.getAttribute('id');
     return <>
         <div style={{
             marginLeft: root? "0px" : "20px",
@@ -49,7 +50,7 @@ function SceneElement({ element, selectedElement, setSelectedElement, root }: {
                             setSelectedElement(element)
                         }
                     }}
-                >{tagName}
+                >{`${tagName}${elementId ? ` #${elementId}` : ""}`}
                 </div>
 
 
@@ -88,6 +89,9 @@ const SceneNavigatorContainer = ({ rootElement }: { rootElement: Element }) => {
         right: "0px",
         color: 'var(--gray6)',
         padding: '10px',
+        height: '100%',
+        overflowY: 'scroll',
+        scrollbarColor: 'var(--gray3) transparent',
     }}>
         <strong>Scene Navigation</strong>
         <SceneNavigator rootElement={rootElement} />

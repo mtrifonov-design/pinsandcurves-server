@@ -10,8 +10,8 @@ function init(ext) {
     initContext = ext;
 }
 
-function builder(virtualElement, renderedChild) {
-    svg.appendChild(renderedChild);
+function builder(virtualElement, renderedChildren) {
+    renderedChildren.forEach(renderedChild => svg.appendChild(renderedChild))
     svg.appendChild(previewRect);
     vElement = virtualElement;
     return svg;

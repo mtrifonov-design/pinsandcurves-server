@@ -12,7 +12,7 @@ function Example({ctx, activeStore, objectManager} : any) {
     return <div>
         <CommonUIContainer ctx={ctx} activeStore={activeStore}>
             <ObjectManagerContainer objectManager={objectManager}>
-                <ObjectDisplay objectName='Transform'/>
+                <ObjectDisplay objectName='Stroke and Fill'/>
             </ObjectManagerContainer>
         </CommonUIContainer>
     </div>

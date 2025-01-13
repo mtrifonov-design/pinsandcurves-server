@@ -54,12 +54,14 @@ function deactivateObject() {
     activeStore.setActive(false);
 }
 
-function builder(virtualElement, renderedChild) {
+function builder(virtualElement, renderedChildren) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.appendChild(renderedChild);
+    renderedChildren.forEach(child => {
+        g.appendChild(child);
+    });
     const uniqueId = getUniqueSelectorPath(virtualElement);
     objects[uniqueId] = g;
-    const pm = new PropertyManager(initContext, uniqueId+"_transform");
+    const pm = new PropertyManager(initContext, uniqueId);
     propertyManagers[uniqueId] = pm;
     const x = createProperty('x','x', 'numeric', 0);
     const y = createProperty('y','y', 'numeric', 0);
@@ -116,7 +118,9 @@ function updater(virtualElement) {
     const anchorX = pm.remapValueIf01('anchorX', [-width,width]);
     const anchorY = pm.remapValueIf01('anchorY', [-height,height]);
     const rotation = pm.remapValueIf01('rotation', [0,360]);
+    
     const scaleX = pm.remapValueIf01('scaleX', [0.000,10]);
+    //console.log("test",pm.getValue('scaleX'),scaleX);
     const scaleY = pm.remapValueIf01('scaleY', [0.000,10]);
     const skewX = pm.remapValueIf01('skewX', [-1,1]);
     const skewY = pm.remapValueIf01('skewY', [-1,1]);

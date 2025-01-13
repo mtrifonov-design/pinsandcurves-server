@@ -10,8 +10,9 @@ import { zigzagifyPathNode } from './zigzagify';
 import { getUniqueSelectorPath } from '../UIToolBox/utils';
 import { findClosestGeometryElement } from './findClosestGeometryElement';
 import { debounce } from './utils';
+import updateDrawingProgress from './svgPathDrawing';
 
-const id = "mtrif.zigzagify";
+const id = "mtrif.drawstroke";
 let initContext;
 const activeStore = new ActiveStore(false);
 const objectManager = new ObjectManager();
@@ -22,8 +23,6 @@ function init(ext) {
 }
 const objects = {};
 
-let hasCapturedClick = false;
-
 let activeObject = null;
 function activateObject(id) {
     activeObject = id;
@@ -31,16 +30,9 @@ function activateObject(id) {
     const obj = objects[id];
     obj.style.outline = '2px solid red';
     objectManager.setActiveObject({id, pm:propertyManagers[id], uipm: uiPropManagers[id]});
-    hasCapturedClick = true;
-    setTimeout(() => {
-        hasCapturedClick = false;
-    }, 0);
 }
 
 function deactivateObject() {
-    if (hasCapturedClick) {
-        return;
-    }
     if (activeObject) {
         const obj = objects[activeObject];
         obj.style.outline = '';
@@ -51,14 +43,12 @@ function deactivateObject() {
 
 
 function builder(virtualElement, renderedChildren) {
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const uniqueId = getUniqueSelectorPath(virtualElement);
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     renderedChildren.forEach(child => {
         g.appendChild(child);
     });
-    let closestGeometryElement = findClosestGeometryElement(g);
-    const uniqueId = getUniqueSelectorPath(virtualElement);
-    objects[uniqueId] = closestGeometryElement;
+    objects[uniqueId] = g;
 
     virtualElement.addEventListener('select', (e) => {
         activateObject(uniqueId);
@@ -68,37 +58,19 @@ function builder(virtualElement, renderedChildren) {
         deactivateObject();
     });
 
-    if (closestGeometryElement === null) {
-        return;
-    }
-
     const pm = new PropertyManager(initContext, uniqueId);
     propertyManagers[uniqueId] = pm;
-    const stretch = createProperty('phase','phase', 'numeric', 0.0);
-    const rounding = createProperty('rounding','rounding', 'numeric', 0);
-    const frequency = createProperty('frequency','frequency', 'numeric', 20);
-    const samplePoints = createProperty('samplePoints','samplePoints', 'numeric', 100);
-    const amplitude = createProperty('amplitude','amplitude', 'numeric', 10);
+    const progress = createProperty('progress','progress', 'numeric', 0.5);
 
-    pm.registerProperty(stretch);
-    pm.registerProperty(rounding);
-    pm.registerProperty(frequency);
-    pm.registerProperty(samplePoints);
-    pm.registerProperty(amplitude);
+    pm.registerProperty(progress);
+
 
     const uipm = new UIPropManager(initContext, uniqueId);
     uiPropManagers[uniqueId] = uipm;
     const enable = uiCreateProperty('enable', 'Enable', 'numeric', 1);
     uipm.registerProperty(enable);
 
-    return renderedChildren;
-    // const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    // const g2 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    // g2.setAttribute('visibility', 'hidden');
-    // g.appendChild(g2);
-    // g.appendChild(path);
-    // g2.appendChild(renderedChild);
-    // return g;
+    return g;
 }
 
 let commonUIBox;
@@ -112,38 +84,15 @@ function commonUIBuilder() {
     return commonUIBox;
 }
 
-let cachedPath;
-
-function getZigzagifyPathNode(node, { phase, frequency, samplePoints, amplitude, rounding }) {
-    cachedPath = zigzagifyPathNode(node, { phase, frequency, samplePoints, amplitude, rounding });
-}
-const debouncedZigZagifyPathNode = debounce(getZigzagifyPathNode, 20);
-
-
 function updater(virtualElement) {
     const uniqueId = getUniqueSelectorPath(virtualElement);
     const obj = objects[uniqueId];
-    if (!obj) {
-        return;
-    }
-
-
-
     const pm = propertyManagers[uniqueId];
-
-    const rounding = pm.remapValue('rounding', [0,1]);
-    const phase = pm.remapValue('phase', [0,2 * Math.PI]);
-    const frequency = Math.floor(pm.remapValue('frequency', [1,100]));
-    const samplePoints = Math.floor(Math.max(pm.getValue('samplePoints'),0));
-    const amplitude = pm.getValue('amplitude');
-
+    const progress = pm.remapValue('progress', [0,1]);
     const enabled = uiPropManagers[uniqueId].getValue('enable');
+    const geometryElements = obj.querySelectorAll('path, circle, ellipse, rect, polygon, polyline');
     if (enabled) {
-    const d = zigzagifyPathNode(obj, { phase, frequency, samplePoints, amplitude, rounding });
-    // debouncedZigZagifyPathNode(closestGeometryElement, { phase, frequency, samplePoints, amplitude, rounding });
-
-
-    obj.setAttribute('d', d);
+        updateDrawingProgress(Array.from(geometryElements), progress);
     }
 
 }
@@ -151,6 +100,6 @@ function updater(virtualElement) {
 
 
 
-const tagNames = ['zigzagify'];
+const tagNames = ['draw-stroke'];
 
 export { builder, updater, tagNames, id, init, commonUIBuilder };

@@ -6,7 +6,7 @@ function init(ext) {
 }
 
 
-function builder(virtualElement, renderedChild) {
+function builder(virtualElement, renderedChildren) {
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     const sceneWidth = initContext.globalConstants['sceneWidth'] || 800;
     const sceneHeight = initContext.globalConstants['sceneHeight'] || 600;

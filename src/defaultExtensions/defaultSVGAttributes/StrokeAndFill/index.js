@@ -30,21 +30,24 @@ function deactivateObject() {
     activeStore.setActive(false);
 }
 
-function builder(virtualElement, renderedChild) {
-    console.log("VVVV",virtualElement)
+function builder(virtualElement, renderedChildren) {
+    const [renderedChild] = renderedChildren;
     console.log(renderedChild)
 
     const uniqueId = getUniqueSelectorPath(virtualElement);
     const closestGeometryElement = findClosestGeometryElement(renderedChild);
     if (!closestGeometryElement) {
-        return renderedChild;
+        return renderedChildren;
     }
     objects[uniqueId] = closestGeometryElement;
-    const pm = new PropertyManager(initContext, uniqueId+"_strokeandfill");
+    const pm = new PropertyManager(initContext, uniqueId);
     propertyManagers[uniqueId] = pm;
-    const stroke = createProperty('stroke','stroke', 'string', "blue");
-    const strokeWidth = createProperty('strokeWidth','strokeWidth', 'numeric', 1);
-    const fill = createProperty('fill','fill', 'string', "pink");
+    const strokeAttribute = virtualElement.getAttribute('stroke') || 'transparent';
+    const strokeWidthAttribute = virtualElement.getAttribute('stroke-width') || 1;
+    const fillAttribute = virtualElement.getAttribute('fill') || 'transparent';
+    const stroke = createProperty('stroke','stroke', 'string', strokeAttribute);
+    const strokeWidth = createProperty('strokeWidth','strokeWidth', 'numeric', strokeWidthAttribute);
+    const fill = createProperty('fill','fill', 'string', fillAttribute);
     pm.registerProperty(stroke);
     pm.registerProperty(strokeWidth);
     pm.registerProperty(fill);
@@ -57,7 +60,7 @@ function builder(virtualElement, renderedChild) {
     })
 
     initContext.rootElement.addEventListener('click', () => {deactivateObject()});
-    return renderedChild;
+    return renderedChildren;
 }
 
 let commonUIBox;

@@ -15,7 +15,7 @@ function init(ctx) {
 
 
 const activeStore = new ActiveStore(false);
-function builder(virtualElement, renderedChild) {
+function builder(virtualElement, renderedChildren) {
     console.log('virtualElement', virtualElement);
     virtualElement.addEventListener('select', () => {
         activeStore.setActive(true);
@@ -23,7 +23,7 @@ function builder(virtualElement, renderedChild) {
     virtualElement.addEventListener('deselect', () => {
         activeStore.setActive(false);
     })
-    return renderedChild;
+    return renderedChildren;
 }
 
 function commonUIBuilder() {

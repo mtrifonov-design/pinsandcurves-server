@@ -10,6 +10,9 @@ import * as background from './defaultSVGShapes/Background';
 import * as image from './defaultSVGShapes/EasyImage';
 import * as strokeandfill from './defaultSVGAttributes/StrokeAndFill';
 import * as nativeSVGElements from './defaultSVGShapes/NativeShapes';
+import * as drawStroke from './DrawStroke'
+import * as polarTransform from './PolarTransform'
+import * as p5canvas from './p5canvas'
 let extensions = [
     applySignals,
     nativeSVGElements,
@@ -18,9 +21,12 @@ let extensions = [
     image,
     superRect,
     transform,
+    polarTransform,
     strokeandfill,
     zigzagify,
+    drawStroke,
     background,
+    p5canvas,
 
 ]
 

@@ -6,7 +6,7 @@ function init(ext) {
 }
 
 
-function builder(virtualElement, renderedChild) {
+function builder(virtualElement, renderedChildren) {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
     const href = virtualElement.getAttribute('src');
     image.setAttribute('href', href);

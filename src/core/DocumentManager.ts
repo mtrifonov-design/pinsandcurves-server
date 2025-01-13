@@ -261,8 +261,8 @@ class DocumentManager {
 
     }
 
-    traverseBuildRecursive(virtualElement: any): Element {
-        const renderedChildren = Array.from(virtualElement.children).map(this.traverseBuildRecursive.bind(this));
+    traverseBuildRecursive(virtualElement: any): SVGElement[] {
+        const renderedChildren = Array.from(virtualElement.children).flatMap(this.traverseBuildRecursive.bind(this));
         // // console.log(virtualElement.tagName,this.builders, renderedChildren);
         let builder = this.builders[virtualElement.tagName];
         if (!builder) {
@@ -276,14 +276,22 @@ class DocumentManager {
 
         const builders = this.builders[virtualElement.tagName];
         if (builders) {
-            return builders.reduce((acc: SVGGElement, builder: Builder) => {
-                const rendered = builder(virtualElement, acc);
+            return builders.reduce((acc: SVGElement[], builder: Builder) => {
+                let rendered = builder(virtualElement, acc);
+                if (!Array.isArray(rendered)) {
+                    rendered = [rendered];
+                }
                 return rendered;
             }, renderedChildren);
         } else return renderedChildren;
     }
+
+
     build() {
-        this.renderRoot.appendChild(this.traverseBuildRecursive(this.virtualRoot));
+        const tree = this.traverseBuildRecursive(this.virtualRoot);
+        tree.forEach((el) => {
+            this.renderRoot.appendChild(el);
+        });
     }
 
 

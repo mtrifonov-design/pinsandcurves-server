@@ -151,7 +151,8 @@ let sketch = function (p) {
 const s = new p5(sketch);
 
 const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-function builder(virtualElement, renderedChild) {
+function builder(virtualElement, renderedChildren) {
+    const [renderedChild] = renderedChildren;
     image.setAttribute('width', String(width));
     image.setAttribute('height', String(height));
     return image;

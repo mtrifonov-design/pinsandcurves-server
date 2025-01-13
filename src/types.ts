@@ -38,7 +38,7 @@ type ExtensionInitContext = {
     onUpdate: (callback: Function) => Function;
 }
 
-type Builder = (virtualElement: VirtualElement, renderedChild: SVGGElement) => SVGGElement;
+type Builder = (virtualElement: VirtualElement, renderedChildren: SVGElement[]) => SVGElement[];
 type Updater = (virtualElement: VirtualElement) => void;
 type UIBuilder = () => HTMLElement;
 
