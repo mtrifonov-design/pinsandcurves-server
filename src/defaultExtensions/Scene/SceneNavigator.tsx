@@ -1,15 +1,18 @@
 import React from 'react';
 import { Button, Icon } from '@mtrifonov-design/pinsandcurves-specialuicomponents'
 import CommonUIContainer from '../UIToolBox/CommonUIContainer';
+import { ExtensionInitContext } from '../../types';
 
 
+function setUniqueId(element: Element, rootElement: Element) {};
 
-
-function SceneElement({ element, selectedElement, setSelectedElement, root }: {
+function SceneElement({ element, selectedElement, setSelectedElement, root, rootElement, initCtx }: {
     element: Element,
     selectedElement: Element | null,
     setSelectedElement: (element: Element) => void,
+    rootElement: Element,
     root?: boolean,
+    initCtx: ExtensionInitContext,
 }) {
 
     const [expanded, setExpanded] = React.useState(true);
@@ -46,6 +49,10 @@ function SceneElement({ element, selectedElement, setSelectedElement, root }: {
                             if (selectedElement) {
                                 selectedElement.dispatchEvent(new CustomEvent("deselect"))
                             }
+                            if (!element.id) {
+                                setUniqueId(element,rootElement);
+                            }
+
                             element.dispatchEvent(new CustomEvent("select"))
                             setSelectedElement(element)
                         }
@@ -63,6 +70,8 @@ function SceneElement({ element, selectedElement, setSelectedElement, root }: {
                     selectedElement={selectedElement}
                     setSelectedElement={setSelectedElement}
                     key={child.tagName + i}
+                    rootElement={rootElement}
+                    initCtx={initCtx}
                 />)}
             </div>
         </div>
@@ -72,16 +81,16 @@ function SceneElement({ element, selectedElement, setSelectedElement, root }: {
 
 
 
-const SceneNavigator = ({ rootElement }: { rootElement: Element }) => {
+const SceneNavigator = ({ rootElement, initCtx }: { rootElement: Element, initCtx: ExtensionInitContext }) => {
 
     const [selectedElement, setSelectedElement] = React.useState<Element | null>(null);
 
     return <div>
-        <SceneElement root={true} element={rootElement} setSelectedElement={setSelectedElement} selectedElement={selectedElement} />
+        <SceneElement initCtx={initCtx} root={true} element={rootElement} setSelectedElement={setSelectedElement} selectedElement={selectedElement} rootElement={rootElement} />
     </div>
 }
 
-const SceneNavigatorContainer = ({ rootElement }: { rootElement: Element }) => {
+const SceneNavigatorContainer = ({ rootElement, initCtx }: { rootElement: Element, initCtx: ExtensionInitContext }) => {
     return <div style={{
         display: 'inline-block',
         width : '300px',
@@ -94,7 +103,7 @@ const SceneNavigatorContainer = ({ rootElement }: { rootElement: Element }) => {
         scrollbarColor: 'var(--gray3) transparent',
     }}>
         <strong>Scene Navigation</strong>
-        <SceneNavigator rootElement={rootElement} />
+        <SceneNavigator rootElement={rootElement} initCtx={initCtx} />
     </div>
 }
 
