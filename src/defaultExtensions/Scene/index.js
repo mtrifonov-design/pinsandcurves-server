@@ -36,7 +36,7 @@ function updater(virtualElement) {
 
 function customUIBuilder() {
     const box = document.createElement('div');
-    createRoot(box).render(SceneNavigator({rootElement: vElement}));
+    createRoot(box).render(SceneNavigator({rootElement: vElement, initCtx: initContext}));
     return box;
 }
 

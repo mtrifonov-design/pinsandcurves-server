@@ -32,9 +32,9 @@ class PropertyManager {
         initCtx.onUpdate(() => {
             this.updateProperties();
             // if id starts with #, save it to store, otherwise don't
-            if (id[0] === "#") {
-                store.properties = this.properties;
-            }
+
+            store.properties = this.properties;
+
 
             // store.properties = this.properties;
             this.subscribers.forEach(cb => cb());

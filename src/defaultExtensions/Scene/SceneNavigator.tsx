@@ -4,7 +4,7 @@ import CommonUIContainer from '../UIToolBox/CommonUIContainer';
 import { ExtensionInitContext } from '../../types';
 
 
-function setUniqueId(element: Element, rootElement: Element) {};
+
 
 function SceneElement({ element, selectedElement, setSelectedElement, root, rootElement, initCtx }: {
     element: Element,
@@ -21,7 +21,7 @@ function SceneElement({ element, selectedElement, setSelectedElement, root, root
     const elementId = element.getAttribute('id');
     return <>
         <div style={{
-            marginLeft: root? "0px" : "20px",
+            marginLeft: root ? "0px" : "20px",
         }}>
             <div style={{
                 display: "flex",
@@ -49,15 +49,12 @@ function SceneElement({ element, selectedElement, setSelectedElement, root, root
                             if (selectedElement) {
                                 selectedElement.dispatchEvent(new CustomEvent("deselect"))
                             }
-                            if (!element.id) {
-                                setUniqueId(element,rootElement);
-                            }
-
+                        
                             element.dispatchEvent(new CustomEvent("select"))
                             setSelectedElement(element)
                         }
                     }}
-                >{`${tagName}${elementId ? ` #${elementId}` : ""}`}
+                >{`${tagName}`}
                 </div>
 
 
@@ -86,14 +83,14 @@ const SceneNavigator = ({ rootElement, initCtx }: { rootElement: Element, initCt
     const [selectedElement, setSelectedElement] = React.useState<Element | null>(null);
 
     return <div>
-        <SceneElement initCtx={initCtx} root={true} element={rootElement} setSelectedElement={setSelectedElement} selectedElement={selectedElement} rootElement={rootElement} />
+        <SceneElement initCtx={initCtx} root={true} element={rootElement} setSelectedElement={setSelectedElement} selectedElement={selectedElement} rootElement={rootElement} />
     </div>
 }
 
 const SceneNavigatorContainer = ({ rootElement, initCtx }: { rootElement: Element, initCtx: ExtensionInitContext }) => {
     return <div style={{
         display: 'inline-block',
-        width : '300px',
+        width: '300px',
         position: "absolute",
         right: "0px",
         color: 'var(--gray6)',

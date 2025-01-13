@@ -3,7 +3,8 @@ import PinsAndCurvesHost from "@mtrifonov-design/pinsandcurves-external/PinsAndC
 import { debounce } from "./utils";
 import { ExtensionScript, GlobalConstants, Extension, Builder, Updater, UIBuilder, ExtensionInitContext, GlobalState, Mode, Resolution } from '../types';
 import { fetchJson, setJson } from "./interactWithJSONfile";
-
+import serializeAndPrettifyXml from "./serializeXML";
+import { setXML } from "./interactWithXML";
 
 class DocumentManager {
 
@@ -35,8 +36,11 @@ class DocumentManager {
 
     }
 
-    constructor(doc: Element, host: PinsAndCurvesHost) {
+    doc: Document;
 
+
+    constructor(doc: Element, host: PinsAndCurvesHost, xmlDoc: Document) {
+        this.doc = xmlDoc;
         this.virtualRoot = doc.querySelector('scene') as Element;
         this.renderRoot = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         document.body.appendChild(this.renderRoot);
@@ -101,12 +105,53 @@ class DocumentManager {
     }
 
 
+    setUniqueIds() {
+        const rootElement = this.virtualRoot
+        // first, we need to collect all ids into a list
+        const ids = new Set<string>();
+        const elements = rootElement.querySelectorAll('*');
+        elements.forEach((element) => {
+            const id = element.getAttribute('id');
+            if (id) {
+                ids.add(id);
+            }
+        });
+        let noIdFound = false;
+        elements.forEach((element) => {
+            const id = element.getAttribute('id');
+            if (!id) {
+                noIdFound = true;
+                // now we can generate a unique id
+                // we will use 3 letters, as this is enough
+                const letters = 'abcdefghijklmnopqrstuvwxyz1234567890';
+                let newId = '';
+                for (let i = 0; i < 3; i++) {
+                    newId += letters[Math.floor(Math.random() * letters.length)];
+                }
+    
+                // now we need to check if this id is unique
+                while (ids.has(newId)) {
+                    newId = '';
+                    for (let i = 0; i < 3; i++) {
+                        newId += letters[Math.floor(Math.random() * letters.length)];
+                    }
+                }
+                element.setAttribute('id', newId);
+            }
+        });
+        if (noIdFound) {
+            console.warn('Some elements did not have an id, so we generated one for them');
+            this.saveXML();
+        }
+    };
+
     async initPipeline() {
         await this.reInitHost();
         await this.initExtensionStores();
         await this.initAutoSave();
         await this.initExtensions(this.extensions);
 
+        this.setUniqueIds();
 
 
         this.build();
@@ -136,6 +181,12 @@ class DocumentManager {
         });
 
     }
+
+    saveXML() {
+        const string = serializeAndPrettifyXml(this.doc);
+        setXML(string);
+    }
+
 
     async initExtensions(extensions: Element[]) {
         await Promise.all(extensions.map(async (extension) => {
@@ -185,6 +236,7 @@ class DocumentManager {
                             return this.host.signal(signalName, frame);
                         },
                         onUpdate: this.host.onUpdate.bind(this.host) as any,
+                        saveXML: this.saveXML.bind(this),
                     }
                     extension.init(extensionInitContext);
                 }

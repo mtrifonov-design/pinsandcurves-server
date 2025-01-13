@@ -34,9 +34,15 @@ function init() {
         }
         const defaultExtensions = [];
 
-        const defaultExtensionBundle = xmlDoc.createElement("extension");
-        defaultExtensionBundle.setAttribute("src", defaultExtensionBundlePath);
-        defaultExtensions.push(defaultExtensionBundle);
+        const defaultExtensionBundleInstalled = Array.from(extensions.children).find((child) => {
+            return child.getAttribute("src") === defaultExtensionBundlePath;
+        });
+
+        if (!defaultExtensionBundleInstalled) {
+            const defaultExtensionBundle = xmlDoc.createElement("extension");
+            defaultExtensionBundle.setAttribute("src", defaultExtensionBundlePath);
+            defaultExtensions.push(defaultExtensionBundle);
+        }
 
         for (let i = 0; i < defaultExtensions.length; i++) {
             if (extensions.firstChild)
@@ -47,7 +53,7 @@ function init() {
         };
 
         // Pass the modified document to your DocumentManager
-        const docManager = new DocumentManager(pinsAndCurvesDoc, host);
+        const docManager = new DocumentManager(pinsAndCurvesDoc, host, xmlDoc);
         applyStyles();
     });
 }

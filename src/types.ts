@@ -36,6 +36,7 @@ type ExtensionInitContext = {
     setFrame: SetFrame;
     globalState: GlobalState;
     onUpdate: (callback: Function) => Function;
+    saveXML: () => void;
 }
 
 type Builder = (virtualElement: VirtualElement, renderedChildren: SVGElement[]) => SVGElement[];
