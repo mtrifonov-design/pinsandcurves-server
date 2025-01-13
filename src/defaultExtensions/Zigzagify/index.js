@@ -3,6 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import CommonUIBox from './CommonUIBox';
 import ActiveStore from '../UIToolBox/ActiveStore';
+import UIPropManager, { createProperty as uiCreateProperty} from '../UIToolBox/UIPropManager';
 import PropertyManager, { createProperty} from '../UIToolBox/PropertyManager';
 import ObjectManager from '../UIToolBox/ObjectManager';
 import { zigzagifyPathNode } from './zigzagify';
@@ -15,21 +16,12 @@ let initContext;
 const activeStore = new ActiveStore(false);
 const objectManager = new ObjectManager();
 const propertyManagers = {};
+const uiPropManagers = {};
 function init(ext) {
     initContext = ext;
 }
 const objects = {};
 
-function onMouseOver(id) {
-    const obj = objects[id];
-    obj.style.outline = '2px solid red';
-};
-function onMouseOut(id) {
-    const obj = objects[id];
-    if (activeObject !== id) {
-        obj.style.outline = '';
-    }
-};
 let hasCapturedClick = false;
 
 let activeObject = null;
@@ -38,7 +30,7 @@ function activateObject(id) {
     activeStore.setActive(true);
     const obj = objects[id];
     obj.style.outline = '2px solid red';
-    objectManager.setActiveObject({id, pm:propertyManagers[id]});
+    objectManager.setActiveObject({id, pm:propertyManagers[id], uipm: uiPropManagers[id]});
     hasCapturedClick = true;
     setTimeout(() => {
         hasCapturedClick = false;
@@ -57,28 +49,26 @@ function deactivateObject() {
     activeStore.setActive(false);
 }
 
-let closestGeometryElement = null;
+
 function builder(virtualElement, renderedChild) {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    let closestGeometryElement = findClosestGeometryElement(renderedChild);
     const uniqueId = getUniqueSelectorPath(virtualElement);
-    objects[uniqueId] = path;
+    objects[uniqueId] = closestGeometryElement;
 
     virtualElement.addEventListener('select', (e) => {
         activateObject(uniqueId);
     });
 
     virtualElement.addEventListener('deselect', (e) => {
-        console.log('deselect received');
         deactivateObject();
     });
 
-    closestGeometryElement = findClosestGeometryElement(renderedChild);
     if (closestGeometryElement === null) {
         return;
     }
 
-
-    const pm = new PropertyManager(initContext);
+    const pm = new PropertyManager(initContext, uniqueId);
     propertyManagers[uniqueId] = pm;
     const stretch = createProperty('phase','phase', 'numeric', 0.0);
     const rounding = createProperty('rounding','rounding', 'numeric', 0);
@@ -92,14 +82,19 @@ function builder(virtualElement, renderedChild) {
     pm.registerProperty(samplePoints);
     pm.registerProperty(amplitude);
 
+    const uipm = new UIPropManager(initContext, uniqueId);
+    uiPropManagers[uniqueId] = uipm;
+    const enable = uiCreateProperty('enable', 'Enable', 'numeric', 1);
+    uipm.registerProperty(enable);
 
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    const g2 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g2.setAttribute('visibility', 'hidden');
-    g.appendChild(g2);
-    g.appendChild(path);
-    g2.appendChild(renderedChild);
-    return g;
+    return renderedChild;
+    // const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    // const g2 = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    // g2.setAttribute('visibility', 'hidden');
+    // g.appendChild(g2);
+    // g.appendChild(path);
+    // g2.appendChild(renderedChild);
+    // return g;
 }
 
 let commonUIBox;
@@ -121,13 +116,15 @@ function getZigzagifyPathNode(node, { phase, frequency, samplePoints, amplitude,
 const debouncedZigZagifyPathNode = debounce(getZigzagifyPathNode, 20);
 
 
-function updaterRaw(virtualElement) {
-    if (closestGeometryElement === null) {
+function updater(virtualElement) {
+    const uniqueId = getUniqueSelectorPath(virtualElement);
+    const obj = objects[uniqueId];
+    if (!obj) {
         return;
     }
 
 
-    const uniqueId = getUniqueSelectorPath(virtualElement);
+
     const pm = propertyManagers[uniqueId];
 
     const rounding = pm.remapValue('rounding', [0,1]);
@@ -135,20 +132,21 @@ function updaterRaw(virtualElement) {
     const frequency = Math.floor(pm.remapValue('frequency', [1,100]));
     const samplePoints = Math.floor(Math.max(pm.getValue('samplePoints'),0));
     const amplitude = pm.getValue('amplitude');
-    const path = cachedPath ? cachedPath : closestGeometryElement.getAttribute('d');
-    
-    debouncedZigZagifyPathNode(closestGeometryElement, { phase, frequency, samplePoints, amplitude, rounding });
-    objects[uniqueId].setAttribute('d', path);
-    objects[uniqueId].setAttribute('fill', "white");
-    objects[uniqueId].setAttribute('stroke', "black");
-    objects[uniqueId].setAttribute('stroke-width', 1);
+
+    const enabled = uiPropManagers[uniqueId].getValue('enable');
+    if (enabled) {
+    const d = zigzagifyPathNode(obj, { phase, frequency, samplePoints, amplitude, rounding });
+    // debouncedZigZagifyPathNode(closestGeometryElement, { phase, frequency, samplePoints, amplitude, rounding });
+
+
+    obj.setAttribute('d', d);
+    }
+
 }
 
 
 
 
 const tagNames = ['zigzagify'];
-
-const updater = debounce(updaterRaw, 20);
 
 export { builder, updater, tagNames, id, init, commonUIBuilder };

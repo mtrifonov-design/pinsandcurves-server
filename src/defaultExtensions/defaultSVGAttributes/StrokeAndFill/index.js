@@ -5,10 +5,10 @@ import CommonUIBox from './CommonUIBox';
 import ActiveStore from '../../UIToolBox/ActiveStore';
 import PropertyManager, { createProperty} from '../../UIToolBox/PropertyManager';
 import ObjectManager from '../../UIToolBox/ObjectManager';
-import generateSuperRectPath from './generateSuperRectPath';
 import { getUniqueSelectorPath } from '../../UIToolBox/utils';
+import { findClosestGeometryElement } from './findClosestGeometryElement';
 
-const id = "mtrif.superrect";
+const id = "mtrif.strokeandfill";
 let initContext;
 const activeStore = new ActiveStore(false);
 const objectManager = new ObjectManager();
@@ -18,34 +18,36 @@ function init(ext) {
 }
 const objects = {};
 
-let hasCapturedClick = false;
-
 let activeObject = null;
 function activateObject(id) {
     activeObject = id;
     activeStore.setActive(true);
-    const obj = objects[id];
-    obj.style.outline = '2px solid red';
     objectManager.setActiveObject({id, pm:propertyManagers[id]});
-    hasCapturedClick = true;
-    setTimeout(() => {
-        hasCapturedClick = false;
-    }, 0);
 }
 
 function deactivateObject() {
-    if (hasCapturedClick) {
-        return;
-    }
-    if (activeObject) {
-        const obj = objects[activeObject];
-        obj.style.outline = '';
-    }
     activeObject = null;
     activeStore.setActive(false);
 }
 
 function builder(virtualElement, renderedChild) {
+    console.log("VVVV",virtualElement)
+    console.log(renderedChild)
+
+    const uniqueId = getUniqueSelectorPath(virtualElement);
+    const closestGeometryElement = findClosestGeometryElement(renderedChild);
+    if (!closestGeometryElement) {
+        return renderedChild;
+    }
+    objects[uniqueId] = closestGeometryElement;
+    const pm = new PropertyManager(initContext, uniqueId+"_strokeandfill");
+    propertyManagers[uniqueId] = pm;
+    const stroke = createProperty('stroke','stroke', 'string', "blue");
+    const strokeWidth = createProperty('strokeWidth','strokeWidth', 'numeric', 1);
+    const fill = createProperty('fill','fill', 'string', "pink");
+    pm.registerProperty(stroke);
+    pm.registerProperty(strokeWidth);
+    pm.registerProperty(fill);
 
     virtualElement.addEventListener('select', () => {
         activateObject(uniqueId);
@@ -54,18 +56,8 @@ function builder(virtualElement, renderedChild) {
         deactivateObject();
     })
 
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const uniqueId = getUniqueSelectorPath(virtualElement);
-    objects[uniqueId] = path;
-    const pm = new PropertyManager(initContext, uniqueId);
-    propertyManagers[uniqueId] = pm;
-    const stretch = createProperty('stretch','stretch', 'numeric', 0.5);
-    pm.registerProperty(stretch);
-    const rounding = createProperty('rounding','rounding', 'numeric', 0);
-    pm.registerProperty(rounding);
     initContext.rootElement.addEventListener('click', () => {deactivateObject()});
-    return path;
+    return renderedChild;
 }
 
 let commonUIBox;
@@ -80,17 +72,22 @@ function commonUIBuilder() {
 }
 function updater(virtualElement) {
     const uniqueId = getUniqueSelectorPath(virtualElement);
-    const pm = propertyManagers[uniqueId];
-    //// console.log("pm",pm);
-    const stretch = pm.remapValue('stretch', [0.001,0.999]);
-    const rounding = pm.remapValue('rounding', [0,1]);
+    const obj = objects[uniqueId];
+    if (!obj) {
+        return;
+    }
 
-    
-    const path = generateSuperRectPath({ stretch, rounding });
-    objects[uniqueId].setAttribute('d', path);
-    objects[uniqueId].setAttribute('fill', "white");
-    objects[uniqueId].setAttribute('stroke', "black");
-    objects[uniqueId].setAttribute('stroke-width', 1);
+    const pm = propertyManagers[uniqueId];
+
+    const stroke = pm.getValue('stroke');
+    const strokeWidth = pm.remapValueIf01('strokeWidth', [0,10]);
+    const fill = pm.getValue('fill');
+
+
+    obj.setAttribute('stroke', stroke);
+    obj.setAttribute('stroke-width', strokeWidth);
+    obj.setAttribute('fill', fill);
+
 }
 const tagNames = ['super-rect'];
 export { builder, updater, tagNames, id, init, commonUIBuilder };

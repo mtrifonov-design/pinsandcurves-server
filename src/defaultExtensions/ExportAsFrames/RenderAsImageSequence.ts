@@ -9,7 +9,7 @@ async function generateImage(frame: number): Promise<HTMLImageElement> {
     return new Promise(async (resolve, reject) => {
         try {
             // Get the SVG canvas element
-            const svgcanvas = document.getElementById("pac-root") as any as SVGSVGElement;
+            const svgcanvas = document.getElementById("pac-scene-root") as any as SVGSVGElement;
             if (!svgcanvas) {
                 reject(new Error("SVG canvas not found"));
                 return;
@@ -241,7 +241,7 @@ async function renderAsImageSequence({ applySignals, startFrame, endFrame, frame
     imageSequence = await Promise.all(imageSequence);
 
     console.log('image sequence', imageSequence);
-    const svgcanvas = document.getElementById('pac-root') as HTMLCanvasElement;
+    const svgcanvas = document.getElementById('pac-scene-root') as HTMLCanvasElement;
     const viewBox = svgcanvas.getAttribute('viewBox')?.split(' ').map(v => parseFloat(v)) || [0, 0, 0, 0];
     const width = viewBox[2];
     const height = viewBox[3];

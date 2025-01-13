@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client';
 import SceneNavigator from './SceneNavigator';
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+svg.id = 'pac-scene-root'
 const previewRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
 let vElement;
 let initContext;

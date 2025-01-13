@@ -20,15 +20,18 @@ type Property = {
 class PropertyManager {
     getSignalValue: (signalName: string, frame?: number) => number | string | undefined;
     getProject: () => PinsAndCurvesProject;
-    constructor(initCtx: ExtensionInitContext) {
-        const extensionStore = initCtx.extensionStore;
+    constructor(initCtx: ExtensionInitContext, id?: string) {
+        id = id? id : "default";
+        let store = initCtx.extensionStore[id] ? initCtx.extensionStore[id] : {};
+        initCtx.extensionStore[id] = store;
+
         // // console.log("Extension store", extensionStore);
-        this.properties = "properties" in extensionStore ? extensionStore.properties : {};
+        this.properties = "properties" in store ? store.properties : {};
         this.getSignalValue = initCtx.getSignalValue;
         this.getProject = initCtx.getProject;
         initCtx.onUpdate(() => {
             this.updateProperties();
-            extensionStore.properties = this.properties;
+            store.properties = this.properties;
             this.subscribers.forEach(cb => cb());
         });
     };

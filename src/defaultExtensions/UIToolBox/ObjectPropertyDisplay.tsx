@@ -12,7 +12,7 @@ function ObjectDisplay({objectName} : {objectName?: string}) {
     const initCtx = useContext(CommonUIContext) as ExtensionInitContext;
     // console.log(initCtx)
     return <div>
-        <div style={{marginBottom: "10px"}}><strong style={{color:"var(--gray7)"}}>{objectName ? objectName : id}</strong></div>
+        {objectName ? <div style={{marginBottom: "10px"}}><strong style={{color:"var(--gray7)"}}>{objectName ? objectName : id}</strong></div> : null}
         {Object.keys(properties).map(propertyId => {
             const property = properties[propertyId];
             const signalName = property.signalName;

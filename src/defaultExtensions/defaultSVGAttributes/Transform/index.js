@@ -59,10 +59,7 @@ function builder(virtualElement, renderedChild) {
     g.appendChild(renderedChild);
     const uniqueId = getUniqueSelectorPath(virtualElement);
     objects[uniqueId] = g;
-
-
-
-    const pm = new PropertyManager(initContext);
+    const pm = new PropertyManager(initContext, uniqueId+"_transform");
     propertyManagers[uniqueId] = pm;
     const x = createProperty('x','x', 'numeric', 0);
     const y = createProperty('y','y', 'numeric', 0);
@@ -121,8 +118,8 @@ function updater(virtualElement) {
     const rotation = pm.remapValueIf01('rotation', [0,360]);
     const scaleX = pm.remapValueIf01('scaleX', [0.000,10]);
     const scaleY = pm.remapValueIf01('scaleY', [0.000,10]);
-    const skewX = pm.remapValueIf01('skewX', [-width,width]);
-    const skewY = pm.remapValueIf01('skewY', [-height,height]);
+    const skewX = pm.remapValueIf01('skewX', [-1,1]);
+    const skewY = pm.remapValueIf01('skewY', [-1,1]);
 
     const matrix = `matrix(${scaleX}, ${skewX}, ${skewY}, ${scaleY}, ${0}, ${0})`;
     const obj = objects[uniqueId];
@@ -134,5 +131,5 @@ function updater(virtualElement) {
     translate(${-anchorX} ${-anchorY})
     `);
 }
-const tagNames = ['super-rect'];
+const tagNames = ['super-rect','image'];
 export { builder, updater, tagNames, id, init, commonUIBuilder };
