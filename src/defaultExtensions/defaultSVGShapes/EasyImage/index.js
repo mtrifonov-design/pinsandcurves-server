@@ -38,5 +38,5 @@ function builder(virtualElement, renderedChild) {
 }
 
 
-const tagNames = ['image'];
+const tagNames = ['easy-image'];
 export { builder,  tagNames, id, init };

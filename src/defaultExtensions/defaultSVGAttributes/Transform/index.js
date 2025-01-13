@@ -131,5 +131,14 @@ function updater(virtualElement) {
     translate(${-anchorX} ${-anchorY})
     `);
 }
-const tagNames = ['super-rect','image'];
+
+// Allow all native SVG element tag names
+const tagNames = [
+    'super-rect','circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'g', 'svg', 'use', 'image', 'marker', 'symbol'
+];
+
+
+
+
+
 export { builder, updater, tagNames, id, init, commonUIBuilder };

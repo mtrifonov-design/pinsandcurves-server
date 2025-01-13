@@ -89,5 +89,9 @@ function updater(virtualElement) {
     obj.setAttribute('fill', fill);
 
 }
-const tagNames = ['super-rect'];
+// Elements that can receive fill and stroke (basic shapes and paths)
+const tagNames = [
+    'super-rect', 'circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect', 'text'
+];
+
 export { builder, updater, tagNames, id, init, commonUIBuilder };

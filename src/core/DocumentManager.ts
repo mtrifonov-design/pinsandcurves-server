@@ -11,13 +11,13 @@ class DocumentManager {
     renderRoot: SVGSVGElement;
     host: PinsAndCurvesHost;
     extensions: Element[];
-    builders : {
+    builders: {
         [key: string]: Builder[];
     } = {};
     commonUIBuilders: UIBuilder[] = [];
     customUIBuilders: UIBuilder[] = [];
 
-    updaters:  {
+    updaters: {
         [key: string]: Updater[];
     } = {};
 
@@ -25,24 +25,24 @@ class DocumentManager {
         [id: string]: any;
     } = {};
 
-    globalState : GlobalState = {
+    globalState: GlobalState = {
         mode: "view",
         resolution: "normal",
         frame: 0,
     }
 
-    globalConstants : GlobalConstants = {
-        
+    globalConstants: GlobalConstants = {
+
     }
 
     constructor(doc: Element, host: PinsAndCurvesHost) {
-        
+
         this.virtualRoot = doc.querySelector('scene') as Element;
         this.renderRoot = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         document.body.appendChild(this.renderRoot);
         this.extensions = Array.from(doc.querySelectorAll('extension'));
         this.parseGlobalConstants(doc);
-        this.host = host; 
+        this.host = host;
         this.initPipeline();
 
     };
@@ -54,7 +54,7 @@ class DocumentManager {
         const request = await fetchJson();
         let json;
         if (!request.data) {
-           // json = localStorage.getItem(`pac-project-${projectName}`);
+            // json = localStorage.getItem(`pac-project-${projectName}`);
         } else {
             json = request.data;
         }
@@ -87,10 +87,12 @@ class DocumentManager {
     async initAutoSave() {
         const projectName = this.host.c.getProject().metaData.name;
         this.host.onUpdate(debounce(() => {
-            const extensionStores = JSON.stringify({extensionStores:this.extensionStores});
-            const projectData = JSON.stringify({project:this.host.serialize()});
-            const combined = JSON.stringify({project:this.host.serialize(), 
-                extensionStores: this.extensionStores});
+            const extensionStores = JSON.stringify({ extensionStores: this.extensionStores });
+            const projectData = JSON.stringify({ project: this.host.serialize() });
+            const combined = JSON.stringify({
+                project: this.host.serialize(),
+                extensionStores: this.extensionStores
+            });
             setJson(combined);
 
             // localStorage.setItem(`pac-project-${projectName}`, projectData);
@@ -123,7 +125,7 @@ class DocumentManager {
     };
 
     parseGlobalConstants(doc: Element) {
-        
+
         const constants = Array.from(doc.getElementsByTagName('constant'));
         constants.forEach((constant) => {
             const key = constant.getAttribute('key');
@@ -145,7 +147,7 @@ class DocumentManager {
             }
 
 
-            let extensionScript : ExtensionScript | null = null;
+            let extensionScript: ExtensionScript | null = null;
             if (src) {
                 extensionScript = await import(src);
             }
@@ -154,9 +156,9 @@ class DocumentManager {
             }
             let extensions = "extensions" in extensionScript ? extensionScript.extensions : [extensionScript];
             // // console.log(extensions);
-            extensions.forEach((extension : Extension) => {
-                if ("init" in extension && typeof extension.init === "function") {     
-                    
+            extensions.forEach((extension: Extension) => {
+                if ("init" in extension && typeof extension.init === "function") {
+
                     const getProject = () => this.host.c.getProject();
                     const getProjectTools = () => this.host.c.projectTools;
 
@@ -165,7 +167,7 @@ class DocumentManager {
                         this.extensionStores[extension.id] = {};
                     }
 
-                    const extensionInitContext : ExtensionInitContext = {
+                    const extensionInitContext: ExtensionInitContext = {
                         getProject,
                         get projectTools() {
                             return getProjectTools();
@@ -198,7 +200,7 @@ class DocumentManager {
                 }
                 const tagNames = extension.tagNames;
                 if (tagNames) {
-                    tagNames.forEach((tagName : string) => {
+                    tagNames.forEach((tagName: string) => {
                         if (builder) {
                             if (!this.builders[tagName]) {
                                 this.builders[tagName] = [];
@@ -224,7 +226,7 @@ class DocumentManager {
             const uiLayer = document.createElement('div');
             uiLayer.style.position = 'absolute';
             uiLayer.style.width = `calc(100% - ${commonUIWidth}px)`;
-            
+
             uiLayer.style.height = '100%';
             uiLayer.style.left = `${commonUIWidth}px`;
             uiLayer.style.top = '0';
@@ -257,57 +259,35 @@ class DocumentManager {
         });
         document.body.appendChild(commonUILayer);
 
-        // const renderButton = document.createElement('button');
-        // renderButton.textContent = 'Render';
-        // renderButton.style.position = 'absolute';
-        // renderButton.style.bottom = '0';
-        // renderButton.style.right = '0';
-        // renderButton.style.zIndex = '100';
-        // renderButton.onclick = () => {
-        //     this.exportAsFrames();
-        // };
-        // uiLayer.appendChild(renderButton);
-
-        // const saveAsJsonButton = document.createElement('button');
-        // saveAsJsonButton.textContent = 'Save as JSON';
-        // saveAsJsonButton.style.position = 'absolute';
-        // saveAsJsonButton.style.bottom = '0';
-        // saveAsJsonButton.style.right = '100px';
-        // saveAsJsonButton.style.zIndex = '100';
-
-        // saveAsJsonButton.onclick = () => {
-        //     this.saveAsJson();
-        // };
-
-        // uiLayer.appendChild(saveAsJsonButton);
-
     }
 
-    traverseBuildRecursive(virtualElement: any) : Element {
+    traverseBuildRecursive(virtualElement: any): Element {
         const renderedChildren = Array.from(virtualElement.children).map(this.traverseBuildRecursive.bind(this));
         // // console.log(virtualElement.tagName,this.builders, renderedChildren);
         let builder = this.builders[virtualElement.tagName];
         if (!builder) {
             throw new Error(`No builder found for tag ${virtualElement.tagName}`);
         }
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        renderedChildren.forEach((child) => {
-            g.appendChild(child);
-        });
+
+        // const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        // renderedChildren.forEach((child) => {
+        //     g.appendChild(child);
+        // });
+
         const builders = this.builders[virtualElement.tagName];
         if (builders) {
-        return builders.reduce((acc : SVGGElement, builder : Builder) => {
-            const rendered = builder(virtualElement, acc);
-            return rendered;
-        }, g);
-        } else return g;
+            return builders.reduce((acc: SVGGElement, builder: Builder) => {
+                const rendered = builder(virtualElement, acc);
+                return rendered;
+            }, renderedChildren);
+        } else return renderedChildren;
     }
     build() {
         this.renderRoot.appendChild(this.traverseBuildRecursive(this.virtualRoot));
     }
 
 
-    traverseUpdateRecursive(virtualElement: Element, frame? : number) {
+    traverseUpdateRecursive(virtualElement: Element, frame?: number) {
 
         const virtualChildren = Array.from(virtualElement.children);
         for (let i = 0; i < virtualChildren.length; i++) {
@@ -325,7 +305,7 @@ class DocumentManager {
 
     }
 
-    update(frame ?: number) {
+    update(frame?: number) {
         if (frame === undefined) {
             frame = this.host.c.getProject().timelineData.playheadPosition
         }
@@ -335,7 +315,7 @@ class DocumentManager {
 
     saveAsJson() {
         const json = JSON.stringify(this.host.serialize());
-        const blob = new Blob([json], {type: 'application/json'});
+        const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
