@@ -188,8 +188,10 @@ class DocumentManager {
     }
 
 
-    async initExtensions(extensions: Element[]) {
-        await Promise.all(extensions.map(async (extension) => {
+    async initExtensions(extensionElements: Element[]) {
+
+        for (let i = 0; i < extensionElements.length; i++) {
+            const extension = extensionElements[i];
             let src = extension.getAttribute('src');
             // if src is a relative path, resolve it
             if (src && src.startsWith('.')) {
@@ -268,7 +270,12 @@ class DocumentManager {
                     });
                 }
             });
-        }));
+        };
+
+
+        // await Promise.all(extensions.map(async (extension) => {
+           
+        // }));
     }
 
     buildUi() {
@@ -297,7 +304,6 @@ class DocumentManager {
         commonUILayer.style.top = '0';
         commonUILayer.style.display = 'flex';
         commonUILayer.style.flexDirection = 'column';
-        commonUILayer.style.gap = '10px';
         commonUILayer.style.overflowY = 'auto';
         commonUILayer.style.overflowX = 'hidden';
         // style scrollbar

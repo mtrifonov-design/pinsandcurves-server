@@ -16,7 +16,7 @@ function init() {
     link.href = stylesheetURL;
     document.head.appendChild(link);
 
-    fetch("scene.pinsandcurves.xml").then(response => {
+    fetch("project.pinsandcurves.xml").then(response => {
         return response.text();
     }).then(xml => {
         const parser = new DOMParser();

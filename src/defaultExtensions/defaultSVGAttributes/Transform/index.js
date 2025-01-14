@@ -17,17 +17,6 @@ function init(ext) {
 }
 const objects = {};
 
-function onMouseOver(id) {
-    const obj = objects[id];
-    obj.style.outline = '2px solid red';
-};
-function onMouseOut(id) {
-    const obj = objects[id];
-    if (activeObject !== id) {
-        obj.style.outline = '';
-    }
-};
-let hasCapturedClick = false;
 
 let activeObject = null;
 function activateObject(id) {
@@ -36,16 +25,9 @@ function activateObject(id) {
     const obj = objects[id];
     obj.style.outline = '2px solid red';
     objectManager.setActiveObject({id, pm:propertyManagers[id]});
-    hasCapturedClick = true;
-    setTimeout(() => {
-        hasCapturedClick = false;
-    }, 0);
 }
 
 function deactivateObject() {
-    if (hasCapturedClick) {
-        return;
-    }
     if (activeObject) {
         const obj = objects[activeObject];
         obj.style.outline = '';
@@ -56,11 +38,11 @@ function deactivateObject() {
 
 function builder(virtualElement, renderedChildren) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    renderedChildren.forEach(child => {
-        g.appendChild(child);
-    });
+    // renderedChildren.forEach(child => {
+    //     g.appendChild(child);
+    // });
     const uniqueId = getUniqueSelectorPath(virtualElement);
-    objects[uniqueId] = g;
+    objects[uniqueId] = renderedChildren ? renderedChildren[0] : g;
     const pm = new PropertyManager(initContext, uniqueId);
     propertyManagers[uniqueId] = pm;
     const x = createProperty('x','x', 'numeric', 0);
@@ -92,7 +74,7 @@ function builder(virtualElement, renderedChildren) {
 
 
     initContext.rootElement.addEventListener('click', () => {deactivateObject()});
-    return g;
+    return objects[uniqueId];
 }
 
 let commonUIBox;
@@ -138,7 +120,7 @@ function updater(virtualElement) {
 
 // Allow all native SVG element tag names
 const tagNames = [
-    'super-rect','circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'g', 'svg', 'use', 'image', 'marker', 'symbol'
+    'super-rect','circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'g', 'svg', 'use', 'image', 'marker', 'symbol', 'tspan'
 ];
 
 

@@ -19,6 +19,7 @@ function SceneElement({ element, selectedElement, setSelectedElement, root, root
     const tagName = element.tagName;
     const children = Array.from(element.children);
     const elementId = element.getAttribute('id');
+    const label = `${tagName} ${elementId && elementId.length > 3 ? '#'+elementId : ""}`
     return <>
         <div style={{
             marginLeft: root ? "0px" : "20px",
@@ -54,7 +55,7 @@ function SceneElement({ element, selectedElement, setSelectedElement, root, root
                             setSelectedElement(element)
                         }
                     }}
-                >{`${tagName}`}
+                >{label}</div>
                 </div>
 
 
@@ -71,7 +72,6 @@ function SceneElement({ element, selectedElement, setSelectedElement, root, root
                     initCtx={initCtx}
                 />)}
             </div>
-        </div>
     </>
 }
 

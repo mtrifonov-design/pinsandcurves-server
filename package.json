@@ -15,6 +15,11 @@
       "import": "./dist/defaultExtensionBundle/esm/index.js",
       "require": "./dist/defaultExtensionBundle/cjs/index.js",
       "types": "./dist/defaultExtensionBundle/types/types.d.ts"
+    },
+    "./mouseClickBundle": {
+      "import": "./dist/mouseClickBundle/esm/index.js",
+      "require": "./dist/mouseClickBundle/cjs/index.js",
+      "types": "./dist/mouseClickBundle/types/types.d.ts"
     }
   },
   "files": [],

@@ -21,6 +21,7 @@ function CommonUIContainer({ ctx, activeStore, children }: {
                 color: 'var(--gray6)',
                 borderRadius: 'var(--borderRadiusSmall)',
                 padding: '10px',
+                marginTop: '10px',
             }}>
                 <CommonUIContext.Provider value={ctx}>
                     {children ? children : null}

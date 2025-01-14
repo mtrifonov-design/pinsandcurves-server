@@ -26,16 +26,14 @@ function handleSpecialElements(virtualElement, svgElement) {
         // get width and height
         const width = parseInt(svgElement.getAttribute('width') || "0");
         const height = parseInt(svgElement.getAttribute('height') || "0");
-
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.appendChild(svgElement);
-        g.setAttribute('transform', `translate(${-width / 2} ${-height / 2})`);
+        const innerg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        innerg.setAttribute('transform', `translate(${-width / 2} ${-height / 2})`);
+        g.appendChild(innerg);
+        innerg.appendChild(svgElement);
         return g;
     }
-
-
-
-
 
 }
 
@@ -53,10 +51,7 @@ function builder(virtualElement, renderedChildren) {
     // Parse and apply attributes
     parseAndApplyAttributes(virtualElement, svgElement);
 
-    const el = handleSpecialElements(virtualElement, svgElement);
-    if (el) {
-        svgElement = el;
-    }
+
 
 
     // Append rendered children if provided
@@ -64,12 +59,26 @@ function builder(virtualElement, renderedChildren) {
         renderedChildren.forEach(renderedChild => svgElement.appendChild(renderedChild));
     }
 
+    // get text content
+    const textContent = virtualElement.textContent;
+    const children = virtualElement.children;
+    if (textContent && children.length === 0) {
+        svgElement.textContent = textContent;
+    }
+
+    const el = handleSpecialElements(virtualElement, svgElement);
+    if (el) {
+        svgElement = el;
+    }
+
+
+
     return svgElement;
 }
 
 // Allow all native SVG element tag names
 const tagNames = [
-    'circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'g', 'svg', 'defs', 'clipPath',
+    'circle', 'tspan', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'g', 'svg', 'defs', 'clipPath',
     'mask', 'pattern', 'image', 'marker', 'use', 'symbol', 'filter', 'feGaussianBlur', 'feOffset', 'feBlend',
     'feFlood', 'feColorMatrix', 'feComponentTransfer', 'feFuncR', 'feFuncG', 'feFuncB', 'feFuncA', 'feMerge',
     'feMergeNode', 'feSpecularLighting', 'feDiffuseLighting', 'feDistantLight', 'fePointLight', 'feSpotLight',
