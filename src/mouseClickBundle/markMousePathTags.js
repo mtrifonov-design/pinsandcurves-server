@@ -69,10 +69,10 @@ function updater(virtualElement) {
     const enabled = uiPropManagers[uniqueId].getValue('enable');
     if (enabled) {
         obj.classList.add('__markedAsMousePath');
-        obj.setAttribute('visibility', 'hidden');
+        //obj.setAttribute('visibility', 'hidden');
     } else {
         obj.classList.remove('__markedAsMousePath');
-        obj.setAttribute('visibility', 'visible');
+        // obj.setAttribute('visibility', 'visible');
     }
 }
 

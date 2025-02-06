@@ -12,9 +12,12 @@ let initContext;
 const activeStore = new ActiveStore(false);
 const objectManager = new ObjectManager();
 const propertyManagers = {};
+
 function init(ext) {
     initContext = ext;
 }
+
+
 const objects = {};
 
 
